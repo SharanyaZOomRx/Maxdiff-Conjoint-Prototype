@@ -1613,6 +1613,20 @@ let appState = {
     nextRespondentIndex: 0
 };
 
+// ============================================================================
+// HARDCODED GOOGLE SHEETS URL (FALLBACK)
+// ============================================================================
+// If you want to avoid URL parameter issues, paste your Google Sheets URL here:
+const HARDCODED_GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyJ3wDLj20tdZMe3E221U0oR0xW2WQqwjziIxveZbqh2wf0ff0vnpmF9_Q-7veE8QTl/exec';
+
+// Auto-load hardcoded URL if provided
+if (HARDCODED_GOOGLE_SHEETS_URL && !appState.googleSheetsConfig.webAppUrl) {
+    appState.googleSheetsConfig.webAppUrl = HARDCODED_GOOGLE_SHEETS_URL;
+    appState.googleSheetsConfig.enabled = true;
+    console.log('✅ Using hardcoded Google Sheets URL');
+}
+// ============================================================================
+
 document.addEventListener('DOMContentLoaded', function() {
     loadFromLocalStorage();
     setupEventListeners();
@@ -3226,15 +3240,23 @@ async function loadSurveyConfigFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const sheetsUrlFromLink = urlParams.get('sheets');
     
+    console.log('📋 URL Parameters:');
+    console.log('   - Respondent ID:', urlParams.get('id'));
+    console.log('   - Sheets URL param found:', !!sheetsUrlFromLink);
+    
     if (sheetsUrlFromLink) {
         const decodedUrl = decodeURIComponent(sheetsUrlFromLink);
         appState.googleSheetsConfig.webAppUrl = decodedUrl;
         appState.googleSheetsConfig.enabled = true;
-        console.log('✅ Found Google Sheets URL from survey link:', decodedUrl);
+        console.log('✅ Found Google Sheets URL from survey link');
+        console.log('   - URL:', decodedUrl);
+    } else {
+        console.log('⚠️ No Google Sheets URL in link parameters');
     }
     
     // Fallback: Try to get Google Sheets URL from localStorage (if user has accessed admin panel before)
     if (!appState.googleSheetsConfig.webAppUrl) {
+        console.log('🔍 Checking localStorage for Google Sheets URL...');
         try {
             const saved = localStorage.getItem('maxdiffConjoint');
             if (saved) {
@@ -3242,14 +3264,20 @@ async function loadSurveyConfigFromUrl() {
                 if (savedState.googleSheetsConfig && savedState.googleSheetsConfig.webAppUrl) {
                     appState.googleSheetsConfig = savedState.googleSheetsConfig;
                     console.log('✅ Found Google Sheets URL from previous session');
+                    console.log('   - URL:', savedState.googleSheetsConfig.webAppUrl);
+                } else {
+                    console.log('   - No Google Sheets config in localStorage');
                 }
+            } else {
+                console.log('   - No previous session data found');
             }
         } catch (e) {
-            console.log('No previous session data found');
+            console.log('   - Error reading localStorage:', e.message);
         }
     }
     
     // Try to load from Google Sheets (works across all browsers)
+    console.log('\n📥 Attempting to load from Google Sheets...');
     const loadedFromSheets = await loadSurveyConfigFromSheets();
     if (loadedFromSheets) {
         console.log('✅ Successfully loaded configuration from Google Sheets');
@@ -3257,6 +3285,7 @@ async function loadSurveyConfigFromUrl() {
     }
     
     // Fallback: Try to load from shared configuration (only works in same browser)
+    console.log('\n🔍 Trying localStorage fallback...');
     const sharedConfigStr = localStorage.getItem('sharedSurveyConfig');
     if (sharedConfigStr) {
         try {
@@ -3268,11 +3297,19 @@ async function loadSurveyConfigFromUrl() {
             console.log('✅ Loaded shared survey configuration from localStorage (same browser)');
             return true;
         } catch (e) {
-            console.error('Failed to load shared config:', e);
+            console.error('❌ Failed to load shared config:', e);
         }
+    } else {
+        console.log('   - No shared config in localStorage');
     }
     
     // Config not found - show helpful message
+    console.error('\n❌ CONFIGURATION LOADING FAILED');
+    console.error('Summary:');
+    console.error('   - Google Sheets URL in link:', !!sheetsUrlFromLink);
+    console.error('   - Google Sheets URL in localStorage:', !!(localStorage.getItem('maxdiffConjoint')));
+    console.error('   - Shared config in localStorage:', !!sharedConfigStr);
+    
     alert('⚠️ Survey Configuration Missing\n\nThis survey requires Google Sheets integration to be set up.\n\nPlease ask your survey administrator to:\n1. Connect Google Sheets in the Admin Panel\n2. Activate the survey (this saves config to Google Sheets)\n3. Generate links (this embeds the Google Sheets URL)\n4. Then share the survey links\n\n(Technical: Survey configuration could not be loaded from Google Sheets or localStorage)');
     console.warn('⚠️ No configuration found in Google Sheets or localStorage');
     return false;
@@ -3445,12 +3482,15 @@ async function saveSurveyConfigToSheets() {
 
 async function loadSurveyConfigFromSheets() {
     if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
-        console.log('Google Sheets not configured');
+        console.log('❌ Google Sheets not configured');
+        console.log('   - Enabled:', appState.googleSheetsConfig.enabled);
+        console.log('   - URL:', appState.googleSheetsConfig.webAppUrl);
         return false;
     }
     
     try {
         console.log('📥 Loading survey configuration from Google Sheets...');
+        console.log('   - URL:', appState.googleSheetsConfig.webAppUrl);
         
         const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
             method: 'GET',
@@ -3459,23 +3499,36 @@ async function loadSurveyConfigFromSheets() {
             }
         });
         
+        console.log('   - Response status:', response.status);
+        console.log('   - Response ok:', response.ok);
+        
         const result = await response.json();
+        console.log('   - Result status:', result.status);
         
         if (result.status === 'success' && result.config) {
+            console.log('   - Has config:', !!result.config);
+            console.log('   - Has surveyConfig:', !!result.config.surveyConfig);
+            console.log('   - Has messages:', !!result.config.messages);
+            console.log('   - Messages count:', result.config.messages?.length);
+            
             appState.surveyConfig = result.config.surveyConfig;
             appState.messages = result.config.messages;
             appState.attributes = result.config.attributes;
             appState.studyDesign = result.config.studyDesign;
             
             console.log('✅ Survey configuration loaded from Google Sheets');
+            console.log('   - Survey is active:', appState.surveyConfig.isActive);
             return true;
         } else {
             console.warn('⚠️ No configuration found in Google Sheets');
+            console.warn('   - Result:', result);
             return false;
         }
         
     } catch (error) {
         console.error('❌ Failed to load config from Google Sheets:', error);
+        console.error('   - Error name:', error.name);
+        console.error('   - Error message:', error.message);
         return false;
     }
 }
