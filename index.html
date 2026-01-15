@@ -1795,60 +1795,99 @@ function handleFileUpload(e) {
     fileLabel.classList.add('has-file');
 
     const reader = new FileReader();
+    const fileExtension = file.name.split('.').pop().toLowerCase();
     
-    reader.onload = function(e) {
-        Papa.parse(e.target.result, {
-            header: true,
-            skipEmptyLines: true,
-            dynamicTyping: false,
-            transformHeader: function(h) {
-                return h.trim().toLowerCase();
-            },
-            complete: function(results) {
-                try {
-                    console.log('Parsed data:', results);
-
-                    appState.messages = results.data
-                        .map((row) => {
-                            // Try all possible column name variations
-                            const msgNum = row['msg_number'] || row['msgnumber'] || row['msg number'] || 
-                                         row['number'] || row['id'] || row['msg_id'];
-                            const attr = row['attribute'] || row['category'] || row['type'];
-                            const msg = row['message'] || row['text'] || row['content'];
-                            
-                            return {
-                                msgNumber: String(msgNum || '').trim(),
-                                attribute: String(attr || '').trim(),
-                                message: String(msg || '').trim()
-                            };
-                        })
-                        .filter(m => m.msgNumber && m.attribute && m.message);
-
-                    if (appState.messages.length === 0) {
-                        throw new Error('No valid messages found. Please check your CSV has columns: msg_number, attribute, message');
-                    }
-
-                    appState.attributes = [...new Set(appState.messages.map(m => m.attribute))];
-
-                    showStatus('success', `✓ Loaded ${appState.messages.length} messages across ${appState.attributes.length} attributes`);
-                    
-                    showMessagesPreview();
-                    document.getElementById('activateSurvey').disabled = false;
-                    document.getElementById('testSurvey').disabled = false;
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    showStatus('error', error.message);
-                }
-            },
-            error: function(error) {
-                console.error('Parse error:', error);
-                showStatus('error', 'Failed to parse CSV: ' + error.message);
+    // Handle Excel files (.xlsx, .xls)
+    if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
+                    raw: false,
+                    defval: ''
+                });
+                
+                console.log('Parsed Excel data:', jsonData);
+                processUploadedData(jsonData);
+                
+            } catch (error) {
+                console.error('Excel parse error:', error);
+                showStatus('error', 'Failed to parse Excel file: ' + error.message);
             }
-        });
-    };
+        };
+        reader.readAsArrayBuffer(file);
+    } 
+    // Handle CSV files
+    else if (fileExtension === 'csv') {
+        reader.onload = function(e) {
+            Papa.parse(e.target.result, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: false,
+                transformHeader: function(h) {
+                    return h.trim().toLowerCase();
+                },
+                complete: function(results) {
+                    console.log('Parsed CSV data:', results);
+                    processUploadedData(results.data);
+                },
+                error: function(error) {
+                    console.error('CSV parse error:', error);
+                    showStatus('error', 'Failed to parse CSV: ' + error.message);
+                }
+            });
+        };
+        reader.readAsText(file, 'UTF-8');
+    } else {
+        showStatus('error', 'Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
+    }
+}
 
-    reader.readAsText(file, 'UTF-8');
+function processUploadedData(data) {
+    try {
+        // Normalize column names to lowercase
+        const normalizedData = data.map(row => {
+            const normalized = {};
+            Object.keys(row).forEach(key => {
+                normalized[key.trim().toLowerCase()] = row[key];
+            });
+            return normalized;
+        });
+
+        appState.messages = normalizedData
+            .map((row) => {
+                // Try all possible column name variations
+                const msgNum = row['msg_number'] || row['msgnumber'] || row['msg number'] || 
+                             row['number'] || row['id'] || row['msg_id'];
+                const attr = row['attribute'] || row['category'] || row['type'];
+                const msg = row['message'] || row['text'] || row['content'];
+                
+                return {
+                    msgNumber: String(msgNum || '').trim(),
+                    attribute: String(attr || '').trim(),
+                    message: String(msg || '').trim()
+                };
+            })
+            .filter(m => m.msgNumber && m.attribute && m.message);
+
+        if (appState.messages.length === 0) {
+            throw new Error('No valid messages found. Please check your file has columns: msg_number, attribute, message');
+        }
+
+        appState.attributes = [...new Set(appState.messages.map(m => m.attribute))];
+
+        showStatus('success', `✓ Loaded ${appState.messages.length} messages across ${appState.attributes.length} attributes`);
+        
+        showMessagesPreview();
+        document.getElementById('activateSurvey').disabled = false;
+        document.getElementById('testSurvey').disabled = false;
+
+    } catch (error) {
+        console.error('Error processing data:', error);
+        showStatus('error', error.message);
+    }
 }
 
 function showStatus(type, message) {
@@ -1939,14 +1978,26 @@ function activateSurvey() {
 
     saveToLocalStorage();
     
-    // Save configuration to Google Sheets for cross-browser access
-    saveSurveyConfigToSheets().then(success => {
-        if (success) {
-            console.log('✅ Configuration saved to Google Sheets - survey will work across all browsers');
-        } else {
-            console.warn('⚠️ Configuration only saved locally - survey will only work in this browser');
-        }
-    });
+    // Save configuration to Supabase for cross-device access
+    if (supabaseClient) {
+        saveConfigToSupabase({
+            surveyConfig: appState.surveyConfig,
+            messages: appState.messages,
+            attributes: appState.attributes,
+            studyDesign: appState.studyDesign,
+            timestamp: Date.now()
+        }).then(configId => {
+            if (configId) {
+                appState.currentConfigId = configId;
+                localStorage.setItem('currentConfigId', configId);
+                console.log('✅ Configuration saved to Supabase - survey will work across all devices');
+            } else {
+                console.warn('⚠️ Configuration only saved locally - survey will only work in this browser');
+            }
+        });
+    } else {
+        console.warn('⚠️ Supabase not configured - configuration only saved locally');
+    }
     
     updateUI();
 
