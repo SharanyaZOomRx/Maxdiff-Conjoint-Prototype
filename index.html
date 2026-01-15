@@ -7,6 +7,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // ============================================================================
+        // SUPABASE CONFIGURATION - CONFIGURED!
+        // ============================================================================
+        const SUPABASE_URL = 'https://wudtpapfkioabmtmkhvw.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable__WImamP_HtfJhOAZ4Oq1mw_fj75XDim';
+        
+        // Initialize Supabase client
+        let supabaseClient = null;
+        if (SUPABASE_URL !== 'YOUR_PROJECT_URL_HERE' && SUPABASE_ANON_KEY !== 'YOUR_ANON_KEY_HERE') {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('✅ Supabase client initialized');
+        } else {
+            console.warn('⚠️ Supabase not configured. Using localStorage only.');
+        }
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -729,63 +747,62 @@ Your responses are confidential and will be used solely for market research purp
                 <div id="messagesPreview" class="hidden"></div>
             </div>
 
-            <!-- GOOGLE SHEETS INTEGRATION (MUST BE CONFIGURED BEFORE ACTIVATION) -->
-            <div class="card" id="googleSheetsCard">
-                <h2>📊 Google Sheets Integration</h2>
+            <!-- SUPABASE BACKEND INTEGRATION -->
+            <div class="card" id="supabaseCard">
+                <h2>🗄️ Supabase Backend Setup</h2>
                 
-                <div class="alert alert-warning" style="margin-bottom: 1.5rem;">
-                    <strong>⚠️ STEP 1: Set This Up FIRST</strong><br>
-                    Before activating your survey, connect Google Sheets here. This is REQUIRED for survey links to work across different browsers and devices.
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <strong>📊 Free Database for Survey Data</strong><br>
+                    Supabase provides a free PostgreSQL database perfect for collecting and analyzing survey responses.
+                    <br><br>
+                    <strong>Setup time:</strong> 3 minutes | <strong>Cost:</strong> Free forever (500MB database, plenty for surveys)
                 </div>
                 
-                <p style="color: #6b7280; margin-bottom: 1.5rem;">Connect to Google Sheets to automatically save survey configuration and all responses.</p>
+                <div id="supabaseStatus" style="margin-bottom: 1.5rem;">
+                    <!-- Status will be shown here -->
+                </div>
                 
-                <div class="form-group">
-                    <label for="googleSheetsUrl">Google Apps Script Web App URL</label>
-                    <input type="text" id="googleSheetsUrl" value="https://script.google.com/macros/s/AKfycbzFI0EPtufN1af622w-MptOT1f_ScGyEACgssOmjb1-5u5CdOpKhdOP5E21ac285vko/exec" 
-                           style="font-family: monospace;">
-                    <div class="alert alert-success" style="margin-top: 0.5rem; font-size: 0.85rem;">
-                        ✅ Your Google Sheets URL is configured with CORS support!
-                    </div>
-                </div>
-
-                <div class="button-group">
-                    <button class="btn btn-primary" id="saveGoogleSheets">Save Integration</button>
-                    <button class="btn btn-secondary" id="testConnection">Test Connection</button>
-                </div>
-
-                <div id="connectionStatus" style="margin-top: 1rem;"></div>
-
-                <details style="margin-top: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 8px;">
-                    <summary style="cursor: pointer; font-weight: 600; color: #2563eb;">📖 Setup Instructions</summary>
+                <details style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 8px;">
+                    <summary style="cursor: pointer; font-weight: 600; color: #2563eb;">📖 Quick Setup Guide</summary>
                     <div style="margin-top: 1rem; line-height: 1.8; color: #374151;">
                         <ol style="padding-left: 1.5rem;">
-                            <li>Open <a href="https://sheets.google.com" target="_blank" style="color: #2563eb;">Google Sheets</a> and create a new spreadsheet</li>
-                            <li>Name it "Survey Responses" (or your preferred name)</li>
-                            <li>Go to <strong>Extensions → Apps Script</strong></li>
-                            <li>Delete any existing code and paste the script from the setup guide</li>
-                            <li>Click <strong>Deploy → New Deployment</strong></li>
-                            <li>Select type: <strong>Web app</strong></li>
-                            <li>Execute as: <strong>Me</strong></li>
-                            <li>Who has access: <strong>Anyone</strong></li>
-                            <li>Click <strong>Deploy</strong> and copy the URL</li>
-                            <li>Paste the URL above and click "Save Integration"</li>
+                            <li>Go to <a href="https://supabase.com" target="_blank" style="color: #2563eb;">supabase.com</a> and sign up (free)</li>
+                            <li>Create a new project (choose a region close to you)</li>
+                            <li>Wait 2-3 minutes for project setup</li>
+                            <li>Go to <strong>SQL Editor</strong> and run the setup SQL (see full guide below)</li>
+                            <li>Go to <strong>Settings → API</strong> and copy:
+                                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                                    <li>Project URL</li>
+                                    <li>anon/public key</li>
+                                </ul>
+                            </li>
+                            <li>Paste both values in the HTML file (see guide)</li>
+                            <li>Upload to GitHub and test!</li>
                         </ol>
                         <div style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; border-left: 4px solid #2563eb;">
-                            <strong>Need the script?</strong> Click "Download Setup Guide" below to get the complete Google Apps Script code.
+                            <strong>Need detailed instructions?</strong> Download the complete setup guide below with SQL code and screenshots.
                         </div>
                     </div>
                 </details>
 
-                <div class="button-group" style="margin-top: 1rem;">
-                    <button class="btn btn-secondary" id="downloadSetupGuide">Download Setup Guide</button>
+                <div class="button-group">
+                    <button class="btn btn-primary" id="downloadSupabaseGuide">📥 Download Full Setup Guide</button>
+                    <button class="btn btn-secondary" id="testSupabase">Test Connection</button>
+                </div>
+
+                <div id="connectionStatus" style="margin-top: 1rem;"></div>
+                
+                <div class="alert alert-warning" style="margin-top: 1.5rem;">
+                    <strong>⚙️ Configuration Required</strong><br>
+                    After Supabase setup, edit lines 13-14 in this HTML file to add your Project URL and API key.<br>
+                    The survey will work once configured!
                 </div>
             </div>
 
             <div class="card">
                 <h2>Survey Status</h2>
                 <div id="surveyStatus" class="alert alert-info">
-                    Survey not yet activated. Set up Google Sheets first, then upload messages.
+                    Survey not yet activated. Upload messages and configure survey first.
                 </div>
 
                 <div class="button-group">
@@ -1590,10 +1607,7 @@ let appState = {
         conjointComparisons: 8,
         isActive: false
     },
-    googleSheetsConfig: {
-        webAppUrl: '',
-        enabled: false
-    },
+    currentConfigId: null,  // Supabase config ID for this survey session
     messages: [],
     attributes: [],
     responses: [],
@@ -1613,25 +1627,23 @@ let appState = {
     nextRespondentIndex: 0
 };
 
-// ============================================================================
-// HARDCODED GOOGLE SHEETS URL (FALLBACK)
-// ============================================================================
-// If you want to avoid URL parameter issues, paste your Google Sheets URL here:
-const HARDCODED_GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyJ3wDLj20tdZMe3E221U0oR0xW2WQqwjziIxveZbqh2wf0ff0vnpmF9_Q-7veE8QTl/exec';
-
-// Auto-load hardcoded URL if provided
-if (HARDCODED_GOOGLE_SHEETS_URL && !appState.googleSheetsConfig.webAppUrl) {
-    appState.googleSheetsConfig.webAppUrl = HARDCODED_GOOGLE_SHEETS_URL;
-    appState.googleSheetsConfig.enabled = true;
-    console.log('✅ Using hardcoded Google Sheets URL:', HARDCODED_GOOGLE_SHEETS_URL);
-}
-// ============================================================================
-
 document.addEventListener('DOMContentLoaded', function() {
     loadFromLocalStorage();
     setupEventListeners();
     updateUI();
+    updateSupabaseStatus();
 });
+
+function updateSupabaseStatus() {
+    const statusDiv = document.getElementById('supabaseStatus');
+    if (statusDiv) {
+        if (supabaseClient) {
+            statusDiv.innerHTML = '<div class="alert alert-success">✅ Supabase is configured and ready!</div>';
+        } else {
+            statusDiv.innerHTML = '<div class="alert alert-warning">⚠️ Supabase not configured. Add your Project URL and API key to lines 16-17 of this HTML file.</div>';
+        }
+    }
+}
 
 function setupEventListeners() {
     document.querySelectorAll('.tab').forEach(tab => {
@@ -1664,10 +1676,34 @@ function setupEventListeners() {
     safeAddListener('downloadLinks', downloadLinksCSV);
     safeAddListener('copyAllLinks', copyAllLinks);
     
-    // Google Sheets listeners (appear after activation)
-    safeAddListener('saveGoogleSheets', saveGoogleSheetsConfig);
-    safeAddListener('testConnection', testGoogleSheetsConnection);
-    safeAddListener('downloadSetupGuide', downloadGoogleSheetsGuide);
+    // Supabase listeners
+    safeAddListener('testSupabase', async function() {
+        const statusDiv = document.getElementById('connectionStatus');
+        statusDiv.innerHTML = '<div class="alert alert-info">Testing connection...</div>';
+        
+        const result = await testSupabaseConnection();
+        
+        if (result.success) {
+            statusDiv.innerHTML = `<div class="alert alert-success">✓ ${result.message}</div>`;
+        } else {
+            statusDiv.innerHTML = `<div class="alert alert-error">✗ ${result.message}</div>`;
+        }
+    });
+    
+    safeAddListener('downloadSupabaseGuide', function() {
+        // Create a temporary link to download the guide
+        const guideUrl = 'https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/SUPABASE_SETUP_GUIDE.md';
+        window.open(guideUrl, '_blank');
+        
+        // Fallback: show alert with instructions
+        alert('📖 Supabase Setup Guide\n\n' +
+              '1. Go to https://supabase.com and sign up\n' +
+              '2. Create a new project\n' +
+              '3. Run the SQL setup script in SQL Editor\n' +
+              '4. Get your Project URL and anon key from Settings → API\n' +
+              '5. Add them to lines 13-14 of this HTML file\n\n' +
+              'For detailed instructions, check the SUPABASE_SETUP_GUIDE.md file.');
+    });
     
     // New listeners for optimization
     document.getElementById('sampleSize').addEventListener('input', updateDesignCalculation);
@@ -3174,7 +3210,7 @@ function showConjointSection() {
 // LINK GENERATOR FUNCTIONS
 // ============================================================================
 
-function generateSurveyLinks() {
+async function generateSurveyLinks() {
     const numLinks = parseInt(document.getElementById('numLinks').value);
     const baseUrl = document.getElementById('baseUrl').value.trim();
     
@@ -3188,34 +3224,39 @@ function generateSurveyLinks() {
         return;
     }
     
-    // Check if Google Sheets is configured
-    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
-        alert('⚠️ Google Sheets Not Configured!\n\nYou must set up Google Sheets integration first.\n\nWithout it, survey links will only work in your browser.\n\nPlease:\n1. Scroll up to "Google Sheets Integration"\n2. Paste your Apps Script URL\n3. Click "Save Integration"\n4. Then generate links again.');
-        return;
-    }
-    
-    // Save survey configuration to shared storage (so respondents can access it)
-    const sharedConfig = {
+    // Save configuration to Supabase and generate links with config ID
+    const configData = {
         surveyConfig: appState.surveyConfig,
         messages: appState.messages,
         attributes: appState.attributes,
         studyDesign: appState.studyDesign,
-        googleSheetsUrl: appState.googleSheetsConfig.webAppUrl, // Include Google Sheets URL
         timestamp: Date.now()
     };
-    localStorage.setItem('sharedSurveyConfig', JSON.stringify(sharedConfig));
-    console.log('✅ Saved shared survey configuration');
+    
+    // Save to Supabase and get config ID
+    const configId = await saveConfigToSupabase(configData);
+    
+    if (!configId && !supabaseClient) {
+        alert('⚠️ Supabase Not Configured\n\nPlease configure Supabase first to generate working survey links.\n\nSee the setup guide in the Admin Panel.');
+        return;
+    }
+    
+    if (!configId) {
+        alert('⚠️ Failed to save configuration to Supabase.\n\nPlease check your Supabase settings and try again.');
+        return;
+    }
+    
+    // Store config ID for this session
+    appState.currentConfigId = configId;
+    localStorage.setItem('currentConfigId', configId);
     
     const links = [];
     const timestamp = Date.now();
     
-    // Encode the Google Sheets URL to include in the link
-    const encodedSheetsUrl = encodeURIComponent(appState.googleSheetsConfig.webAppUrl);
-    
     for (let i = 1; i <= numLinks; i++) {
         const respondentId = `R${timestamp}_${String(i).padStart(4, '0')}`;
         const separator = baseUrl.includes('?') ? '&' : '?';
-        const url = `${baseUrl}${separator}id=${respondentId}&sheets=${encodedSheetsUrl}`;
+        const url = `${baseUrl}${separator}id=${respondentId}&config=${configId}`;
         links.push({ id: respondentId, url: url });
     }
     
@@ -3230,88 +3271,60 @@ function generateSurveyLinks() {
     document.getElementById('downloadLinks').style.display = 'inline-block';
     document.getElementById('copyAllLinks').style.display = 'inline-block';
     
-    console.log(`✅ Generated ${links.length} unique survey links with Google Sheets URL embedded`);
+    console.log(`✅ Generated ${links.length} survey links with Supabase config ID: ${configId}`);
 }
 
 async function loadSurveyConfigFromUrl() {
     console.log('🔍 Attempting to load survey configuration...');
     
-    // NEW: Try to get Google Sheets URL from URL parameter (embedded in the link)
+    // Get config ID from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
-    const sheetsUrlFromLink = urlParams.get('sheets');
+    const configId = urlParams.get('config');
     
     console.log('📋 URL Parameters:');
     console.log('   - Respondent ID:', urlParams.get('id'));
-    console.log('   - Sheets URL param found:', !!sheetsUrlFromLink);
+    console.log('   - Config ID:', configId);
     
-    if (sheetsUrlFromLink) {
-        const decodedUrl = decodeURIComponent(sheetsUrlFromLink);
-        appState.googleSheetsConfig.webAppUrl = decodedUrl;
-        appState.googleSheetsConfig.enabled = true;
-        console.log('✅ Found Google Sheets URL from survey link');
-        console.log('   - URL:', decodedUrl);
-    } else {
-        console.log('⚠️ No Google Sheets URL in link parameters');
-    }
-    
-    // Fallback: Try to get Google Sheets URL from localStorage (if user has accessed admin panel before)
-    if (!appState.googleSheetsConfig.webAppUrl) {
-        console.log('🔍 Checking localStorage for Google Sheets URL...');
-        try {
-            const saved = localStorage.getItem('maxdiffConjoint');
-            if (saved) {
-                const savedState = JSON.parse(saved);
-                if (savedState.googleSheetsConfig && savedState.googleSheetsConfig.webAppUrl) {
-                    appState.googleSheetsConfig = savedState.googleSheetsConfig;
-                    console.log('✅ Found Google Sheets URL from previous session');
-                    console.log('   - URL:', savedState.googleSheetsConfig.webAppUrl);
-                } else {
-                    console.log('   - No Google Sheets config in localStorage');
-                }
-            } else {
-                console.log('   - No previous session data found');
-            }
-        } catch (e) {
-            console.log('   - Error reading localStorage:', e.message);
-        }
-    }
-    
-    // Try to load from Google Sheets (works across all browsers)
-    console.log('\n📥 Attempting to load from Google Sheets...');
-    const loadedFromSheets = await loadSurveyConfigFromSheets();
-    if (loadedFromSheets) {
-        console.log('✅ Successfully loaded configuration from Google Sheets');
-        return true;
-    }
-    
-    // Fallback: Try to load from shared configuration (only works in same browser)
-    console.log('\n🔍 Trying localStorage fallback...');
-    const sharedConfigStr = localStorage.getItem('sharedSurveyConfig');
-    if (sharedConfigStr) {
-        try {
-            const sharedConfig = JSON.parse(sharedConfigStr);
-            appState.surveyConfig = sharedConfig.surveyConfig;
-            appState.messages = sharedConfig.messages;
-            appState.attributes = sharedConfig.attributes;
-            appState.studyDesign = sharedConfig.studyDesign;
-            console.log('✅ Loaded shared survey configuration from localStorage (same browser)');
+    // Try to load from Supabase using config ID
+    if (configId && supabaseClient) {
+        console.log('📥 Loading from Supabase...');
+        const config = await loadConfigFromSupabase(configId);
+        
+        if (config) {
+            appState.surveyConfig = config.surveyConfig;
+            appState.messages = config.messages;
+            appState.attributes = config.attributes;
+            appState.studyDesign = config.studyDesign;
+            appState.currentConfigId = configId;
+            
+            console.log('✅ Successfully loaded configuration from Supabase!');
+            console.log('   - Messages:', appState.messages.length);
+            console.log('   - Attributes:', appState.attributes.length);
             return true;
-        } catch (e) {
-            console.error('❌ Failed to load shared config:', e);
         }
-    } else {
-        console.log('   - No shared config in localStorage');
     }
     
-    // Config not found - show helpful message
-    console.error('\n❌ CONFIGURATION LOADING FAILED');
-    console.error('Summary:');
-    console.error('   - Google Sheets URL in link:', !!sheetsUrlFromLink);
-    console.error('   - Google Sheets URL in localStorage:', !!(localStorage.getItem('maxdiffConjoint')));
-    console.error('   - Shared config in localStorage:', !!sharedConfigStr);
+    // Fallback: Try to load from localStorage (only works in same browser)
+    console.log('\n🔍 Trying localStorage fallback...');
+    try {
+        const saved = localStorage.getItem('maxdiffConjoint');
+        if (saved) {
+            const savedState = JSON.parse(saved);
+            appState.surveyConfig = savedState.surveyConfig;
+            appState.messages = savedState.messages;
+            appState.attributes = savedState.attributes;
+            appState.studyDesign = savedState.studyDesign;
+            console.log('✅ Loaded configuration from localStorage (same browser)');
+            return true;
+        }
+    } catch (e) {
+        console.error('❌ Failed to load from localStorage:', e);
+    }
     
-    alert('⚠️ Survey Configuration Missing\n\nThis survey requires Google Sheets integration to be set up.\n\nPlease ask your survey administrator to:\n1. Connect Google Sheets in the Admin Panel\n2. Activate the survey (this saves config to Google Sheets)\n3. Generate links (this embeds the Google Sheets URL)\n4. Then share the survey links\n\n(Technical: Survey configuration could not be loaded from Google Sheets or localStorage)');
-    console.warn('⚠️ No configuration found in Google Sheets or localStorage');
+    // Config not found
+    console.error('\n❌ CONFIGURATION LOADING FAILED');
+    alert('⚠️ Survey Configuration Missing\n\nThis survey link appears to be invalid or the configuration was not found.\n\nPlease ask your survey administrator to:\n1. Set up Supabase in the Admin Panel\n2. Generate new survey links\n3. Share the updated links');
+    console.warn('⚠️ No configuration found');
     return false;
 }
 
@@ -3353,151 +3366,160 @@ function copyAllLinks() {
 }
 
 // ============================================================================
-// GOOGLE SHEETS INTEGRATION FUNCTIONS
+// SUPABASE BACKEND INTEGRATION
 // ============================================================================
 
-function saveGoogleSheetsConfig() {
-    const url = document.getElementById('googleSheetsUrl').value.trim();
-    
-    if (!url) {
-        alert('Please enter your Google Apps Script URL');
-        return;
+async function saveConfigToSupabase(configData) {
+    if (!supabaseClient) {
+        console.log('⚠️ Supabase not configured, skipping cloud save');
+        return null;
     }
-    
-    if (!url.includes('script.google.com')) {
-        alert('Please enter a valid Google Apps Script URL');
-        return;
-    }
-    
-    appState.googleSheetsConfig.webAppUrl = url;
-    appState.googleSheetsConfig.enabled = true;
-    
-    saveToLocalStorage();
-    
-    document.getElementById('connectionStatus').innerHTML = 
-        '<div class="alert alert-success">✓ Configuration saved! Responses will now sync to Google Sheets.</div>';
-    
-    console.log('✅ Google Sheets integration configured');
-}
-
-async function testGoogleSheetsConnection() {
-    const url = document.getElementById('googleSheetsUrl').value.trim();
-    
-    if (!url) {
-        alert('Please enter your Google Apps Script URL first');
-        return;
-    }
-    
-    const statusDiv = document.getElementById('connectionStatus');
-    statusDiv.innerHTML = '<div class="alert alert-info">Testing connection...</div>';
     
     try {
-        const testData = {
-            type: 'test',
-            timestamp: new Date().toISOString(),
-            message: 'Connection test from Message Testing Platform'
+        console.log('📤 Saving survey configuration to Supabase...');
+        
+        const { data, error } = await supabaseClient
+            .from('survey_configs')
+            .insert([{ config_data: configData }])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        console.log('✅ Configuration saved to Supabase');
+        console.log('   Config ID:', data.id);
+        return data.id;
+        
+    } catch (error) {
+        console.error('❌ Failed to save config to Supabase:', error);
+        return null;
+    }
+}
+
+async function loadConfigFromSupabase(configId) {
+    if (!supabaseClient) {
+        console.log('⚠️ Supabase not configured');
+        return null;
+    }
+    
+    try {
+        console.log('📥 Loading configuration from Supabase...');
+        console.log('   Config ID:', configId);
+        
+        const { data, error } = await supabaseClient
+            .from('survey_configs')
+            .select('config_data')
+            .eq('id', configId)
+            .single();
+        
+        if (error) throw error;
+        
+        console.log('✅ Configuration loaded from Supabase');
+        return data.config_data;
+        
+    } catch (error) {
+        console.error('❌ Failed to load config from Supabase:', error);
+        return null;
+    }
+}
+
+async function saveResponseToSupabase(responseData, configId) {
+    if (!supabaseClient) {
+        console.log('⚠️ Supabase not configured, response only saved locally');
+        return;
+    }
+    
+    try {
+        console.log('📤 Saving response to Supabase...');
+        
+        const { data, error } = await supabaseClient
+            .from('survey_responses')
+            .insert([{
+                config_id: configId,
+                respondent_id: responseData.respondent_id,
+                respondent_name: responseData.name,
+                respondent_role: responseData.role,
+                start_time: responseData.start_time,
+                completed_time: responseData.completed_time,
+                maxdiff_responses: responseData.maxdiff_responses,
+                conjoint_responses: responseData.conjoint_responses,
+                product_name: responseData.product_name,
+                disease_name: responseData.disease_name
+            }]);
+        
+        if (error) throw error;
+        
+        console.log('✅ Response saved to Supabase');
+        
+    } catch (error) {
+        console.error('❌ Failed to save response to Supabase:', error);
+    }
+}
+
+async function getAllResponsesFromSupabase(configId) {
+    if (!supabaseClient) {
+        console.log('⚠️ Supabase not configured');
+        return [];
+    }
+    
+    try {
+        console.log('📥 Fetching all responses from Supabase...');
+        
+        let query = supabaseClient
+            .from('survey_responses')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (configId) {
+            query = query.eq('config_id', configId);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        console.log(`✅ Fetched ${data.length} responses from Supabase`);
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Failed to fetch responses from Supabase:', error);
+        return [];
+    }
+}
+
+async function testSupabaseConnection() {
+    if (!supabaseClient) {
+        return {
+            success: false,
+            message: 'Supabase not configured. Please add your URL and API key.'
+        };
+    }
+    
+    try {
+        console.log('🔍 Testing Supabase connection...');
+        
+        // Try to query the survey_configs table
+        const { data, error } = await supabaseClient
+            .from('survey_configs')
+            .select('id')
+            .limit(1);
+        
+        if (error) throw error;
+        
+        console.log('✅ Supabase connection successful');
+        return {
+            success: true,
+            message: 'Connection successful! Database is accessible.'
         };
         
-        const response = await fetch(url, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(testData)
-        });
-        
-        // no-cors mode doesn't give us response, so we assume success
-        statusDiv.innerHTML = '<div class="alert alert-success">✓ Connection successful! (Note: no-cors mode prevents detailed response)</div>';
-        console.log('✅ Test request sent to Google Sheets');
-        
     } catch (error) {
-        statusDiv.innerHTML = `<div class="alert alert-warning">⚠️ Request sent but cannot verify: ${error.message}</div>`;
-        console.error('Connection test error:', error);
-    }
-}
-
-async function sendToGoogleSheets(responseData) {
-    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
-        console.log('Google Sheets not configured, skipping sync');
-        return;
-    }
-    
-    try {
-        console.log('📤 Sending data to Google Sheets...');
-        
-        const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(responseData)
-        });
-        
-        console.log('✅ Data sent to Google Sheets');
-        
-    } catch (error) {
-        console.error('❌ Failed to send to Google Sheets:', error);
-    }
-}
-
-async function saveSurveyConfigToSheets() {
-    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
-        console.log('⚠️ Google Sheets not configured. Survey config will only work in this browser.');
-        return false;
-    }
-    
-    try {
-        console.log('📤 Saving survey configuration to Google Sheets...');
-        
-        const configData = {
-            type: 'save_config',
-            config: {
-                surveyConfig: appState.surveyConfig,
-                messages: appState.messages,
-                attributes: appState.attributes,
-                studyDesign: appState.studyDesign,
-                timestamp: Date.now()
-            }
+        console.error('❌ Supabase connection failed:', error);
+        return {
+            success: false,
+            message: `Connection failed: ${error.message}`
         };
-        
-        const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(configData)
-        });
-        
-        console.log('✅ Survey configuration saved to Google Sheets');
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Failed to save config to Google Sheets:', error);
-        return false;
     }
 }
-
-async function loadSurveyConfigFromSheets() {
-    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
-        console.log('❌ Google Sheets not configured');
-        console.log('   - Enabled:', appState.googleSheetsConfig.enabled);
-        console.log('   - URL:', appState.googleSheetsConfig.webAppUrl);
-        return false;
-    }
-    
-    try {
-        console.log('📥 Loading survey configuration from Google Sheets...');
-        console.log('   - URL:', appState.googleSheetsConfig.webAppUrl);
-        
-        const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
         
         console.log('   - Response status:', response.status);
         console.log('   - Response ok:', response.ok);
@@ -3844,7 +3866,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
-// Modified completeSurvey to send to Google Sheets
+// Modified completeSurvey to send to Supabase
 const originalCompleteSurvey = window.completeSurvey;
 window.completeSurvey = async function() {
     // Call original function
@@ -3852,10 +3874,9 @@ window.completeSurvey = async function() {
         originalCompleteSurvey();
     }
     
-    // Prepare data for Google Sheets
+    // Prepare response data
     const urlRespondentId = sessionStorage.getItem('respondentId');
     const responseData = {
-        type: 'survey_response',
         respondent_id: urlRespondentId || appState.currentRespondent.id,
         name: appState.currentRespondent.name,
         role: appState.currentRespondent.role,
@@ -3864,12 +3885,12 @@ window.completeSurvey = async function() {
         maxdiff_responses: appState.currentRespondent.maxdiffResponses,
         conjoint_responses: appState.currentRespondent.conjointResponses,
         product_name: appState.surveyConfig.productName,
-        disease_name: appState.surveyConfig.diseaseName,
-        timestamp: new Date().toISOString()
+        disease_name: appState.surveyConfig.diseaseName
     };
     
-    // Send to Google Sheets
-    await sendToGoogleSheets(responseData);
+    // Save to Supabase
+    const configId = appState.currentConfigId || localStorage.getItem('currentConfigId');
+    await saveResponseToSupabase(responseData, configId);
 };
 
     </script>
