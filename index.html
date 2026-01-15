@@ -1789,8 +1789,14 @@ function displayWelcomeMessage() {
 }
 
 function handleFileUpload(e) {
+    console.log('🔍 File upload triggered');
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+        console.log('❌ No file selected');
+        return;
+    }
+    
+    console.log('📁 File selected:', file.name, 'Type:', file.type);
 
     const fileLabel = document.getElementById('fileLabel');
     fileLabel.textContent = `✓ ${file.name}`;
@@ -1799,10 +1805,14 @@ function handleFileUpload(e) {
     const reader = new FileReader();
     const fileExtension = file.name.split('.').pop().toLowerCase();
     
+    console.log('📄 File extension:', fileExtension);
+    
     // Handle Excel files (.xlsx, .xls)
     if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+        console.log('📊 Processing as Excel file...');
         reader.onload = function(e) {
             try {
+                console.log('✅ File loaded, parsing Excel...');
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -1811,19 +1821,25 @@ function handleFileUpload(e) {
                     defval: ''
                 });
                 
-                console.log('Parsed Excel data:', jsonData);
+                console.log('📥 Parsed Excel data:', jsonData.length, 'rows');
                 processUploadedData(jsonData);
                 
             } catch (error) {
-                console.error('Excel parse error:', error);
+                console.error('❌ Excel parse error:', error);
                 showStatus('error', 'Failed to parse Excel file: ' + error.message);
             }
+        };
+        reader.onerror = function(e) {
+            console.error('❌ File read error:', e);
+            showStatus('error', 'Failed to read file');
         };
         reader.readAsArrayBuffer(file);
     } 
     // Handle CSV files
     else if (fileExtension === 'csv') {
+        console.log('📄 Processing as CSV file...');
         reader.onload = function(e) {
+            console.log('✅ File loaded, parsing CSV...');
             Papa.parse(e.target.result, {
                 header: true,
                 skipEmptyLines: true,
@@ -1832,22 +1848,28 @@ function handleFileUpload(e) {
                     return h.trim().toLowerCase();
                 },
                 complete: function(results) {
-                    console.log('Parsed CSV data:', results);
+                    console.log('📥 Parsed CSV data:', results.data.length, 'rows');
                     processUploadedData(results.data);
                 },
                 error: function(error) {
-                    console.error('CSV parse error:', error);
+                    console.error('❌ CSV parse error:', error);
                     showStatus('error', 'Failed to parse CSV: ' + error.message);
                 }
             });
         };
+        reader.onerror = function(e) {
+            console.error('❌ File read error:', e);
+            showStatus('error', 'Failed to read file');
+        };
         reader.readAsText(file, 'UTF-8');
     } else {
+        console.log('❌ Invalid file type:', fileExtension);
         showStatus('error', 'Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
     }
 }
 
 function processUploadedData(data) {
+    console.log('🔄 Processing uploaded data...', data.length, 'rows');
     try {
         // Normalize column names to lowercase
         const normalizedData = data.map(row => {
@@ -1857,6 +1879,8 @@ function processUploadedData(data) {
             });
             return normalized;
         });
+        
+        console.log('📋 First row (normalized):', normalizedData[0]);
 
         appState.messages = normalizedData
             .map((row) => {
@@ -1874,20 +1898,33 @@ function processUploadedData(data) {
             })
             .filter(m => m.msgNumber && m.attribute && m.message);
 
+        console.log('✅ Processed messages:', appState.messages.length);
+        console.log('📊 First message:', appState.messages[0]);
+
         if (appState.messages.length === 0) {
             throw new Error('No valid messages found. Please check your file has columns: msg_number, attribute, message');
         }
 
         appState.attributes = [...new Set(appState.messages.map(m => m.attribute))];
+        console.log('📂 Attributes found:', appState.attributes);
 
         showStatus('success', `✓ Loaded ${appState.messages.length} messages across ${appState.attributes.length} attributes`);
         
         showMessagesPreview();
         document.getElementById('activateSurvey').disabled = false;
         document.getElementById('testSurvey').disabled = false;
+        
+        // Update survey status to show next steps
+        const surveyStatus = document.getElementById('surveyStatus');
+        if (surveyStatus) {
+            surveyStatus.className = 'alert alert-info';
+            surveyStatus.innerHTML = '✓ Messages loaded successfully!<br><small>Review configuration settings above, then click "Activate Survey" to proceed.</small>';
+        }
+        
+        console.log('✅ Upload complete!');
 
     } catch (error) {
-        console.error('Error processing data:', error);
+        console.error('❌ Error processing data:', error);
         showStatus('error', error.message);
     }
 }
