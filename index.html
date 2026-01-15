@@ -729,60 +729,13 @@ Your responses are confidential and will be used solely for market research purp
                 <div id="messagesPreview" class="hidden"></div>
             </div>
 
-            <div class="card">
-                <h2>Survey Status</h2>
-                <div id="surveyStatus" class="alert alert-info">
-                    Survey not yet activated. Upload messages first.
-                </div>
-
-                <div class="button-group">
-                    <button class="btn btn-primary" id="activateSurvey" disabled>Activate Survey</button>
-                    <button class="btn btn-secondary" id="testSurvey" disabled>Test Survey</button>
-                    <button class="btn btn-secondary" id="resetSurvey">Reset All Data</button>
-                </div>
-            </div>
-
-            <div class="card" id="linkGeneratorCard" style="display: none;">
-                <h2>🔗 Generate Survey Links</h2>
-                <p style="color: #6b7280; margin-bottom: 1.5rem;">Create unique tracking links for your respondents. Each link includes a unique ID for response tracking.</p>
-                
-                <div class="form-group">
-                    <label for="numLinks">Number of Links to Generate</label>
-                    <input type="number" id="numLinks" min="1" max="500" value="25" placeholder="Enter number (1-500)">
-                </div>
-
-                <div class="form-group">
-                    <label for="baseUrl">Your Survey URL</label>
-                    <input type="text" id="baseUrl" placeholder="https://yourusername.github.io/survey/" 
-                           style="font-family: monospace;">
-                    <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
-                        After deploying to GitHub Pages, enter your URL here
-                    </div>
-                </div>
-
-                <div class="button-group">
-                    <button class="btn btn-primary" id="generateLinks">Generate Links</button>
-                    <button class="btn btn-secondary" id="downloadLinks" style="display: none;">Download CSV</button>
-                    <button class="btn btn-secondary" id="copyAllLinks" style="display: none;">Copy All</button>
-                </div>
-
-                <div id="linksOutput" style="margin-top: 1.5rem; display: none;">
-                    <h3 style="margin-bottom: 1rem;">Generated Links:</h3>
-                    <div style="max-height: 300px; overflow-y: auto; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
-                        <textarea id="linksTextarea" readonly style="width: 100%; min-height: 200px; font-family: monospace; font-size: 0.85rem; border: none; background: transparent; resize: vertical;"></textarea>
-                    </div>
-                    <div style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">
-                        <span id="linkCount">0</span> links generated
-                    </div>
-                </div>
-            </div>
-
-            <div class="card" id="googleSheetsCard" style="display: none;">
+            <!-- GOOGLE SHEETS INTEGRATION (MUST BE CONFIGURED BEFORE ACTIVATION) -->
+            <div class="card" id="googleSheetsCard">
                 <h2>📊 Google Sheets Integration</h2>
                 
                 <div class="alert alert-warning" style="margin-bottom: 1.5rem;">
-                    <strong>⚠️ IMPORTANT: Required for Cross-Browser Surveys</strong><br>
-                    To share survey links that work on any device/browser, you MUST set up Google Sheets integration BEFORE activating the survey. This stores your survey configuration centrally so respondents can access it from anywhere.
+                    <strong>⚠️ STEP 1: Set This Up FIRST</strong><br>
+                    Before activating your survey, connect Google Sheets here. This is REQUIRED for survey links to work across different browsers and devices.
                 </div>
                 
                 <p style="color: #6b7280; margin-bottom: 1.5rem;">Connect to Google Sheets to automatically save survey configuration and all responses.</p>
@@ -828,6 +781,55 @@ Your responses are confidential and will be used solely for market research purp
                     <button class="btn btn-secondary" id="downloadSetupGuide">Download Setup Guide</button>
                 </div>
             </div>
+
+            <div class="card">
+                <h2>Survey Status</h2>
+                <div id="surveyStatus" class="alert alert-info">
+                    Survey not yet activated. Set up Google Sheets first, then upload messages.
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="activateSurvey" disabled>Activate Survey</button>
+                    <button class="btn btn-secondary" id="testSurvey" disabled>Test Survey</button>
+                    <button class="btn btn-secondary" id="resetSurvey">Reset All Data</button>
+                </div>
+            </div>
+
+            <div class="card" id="linkGeneratorCard" style="display: none;">
+                <h2>🔗 Generate Survey Links</h2>
+                <p style="color: #6b7280; margin-bottom: 1.5rem;">Create unique tracking links for your respondents. Each link includes a unique ID for response tracking.</p>
+                
+                <div class="form-group">
+                    <label for="numLinks">Number of Links to Generate</label>
+                    <input type="number" id="numLinks" min="1" max="500" value="25" placeholder="Enter number (1-500)">
+                </div>
+
+                <div class="form-group">
+                    <label for="baseUrl">Your Survey URL</label>
+                    <input type="text" id="baseUrl" placeholder="https://yourusername.github.io/survey/" 
+                           style="font-family: monospace;">
+                    <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        After deploying to GitHub Pages, enter your URL here
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="generateLinks">Generate Links</button>
+                    <button class="btn btn-secondary" id="downloadLinks" style="display: none;">Download CSV</button>
+                    <button class="btn btn-secondary" id="copyAllLinks" style="display: none;">Copy All</button>
+                </div>
+
+                <div id="linksOutput" style="margin-top: 1.5rem; display: none;">
+                    <h3 style="margin-bottom: 1rem;">Generated Links:</h3>
+                    <div style="max-height: 300px; overflow-y: auto; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
+                        <textarea id="linksTextarea" readonly style="width: 100%; min-height: 200px; font-family: monospace; font-size: 0.85rem; border: none; background: transparent; resize: vertical;"></textarea>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">
+                        <span id="linkCount">0</span> links generated
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- TAKE SURVEY PANEL -->
@@ -3024,16 +3026,16 @@ function updateUI() {
         document.getElementById('surveyInactive').classList.add('hidden');
         document.getElementById('surveyActive').classList.remove('hidden');
         
-        // Show link generator and Google Sheets integration when survey is active
+        // Show link generator when survey is active
+        // Google Sheets integration is ALWAYS visible (needed before activation)
         document.getElementById('linkGeneratorCard').style.display = 'block';
-        document.getElementById('googleSheetsCard').style.display = 'block';
     } else {
         document.getElementById('surveyInactive').classList.remove('hidden');
         document.getElementById('surveyActive').classList.add('hidden');
         
-        // Hide link generator and Google Sheets when survey is not active
+        // Hide link generator when survey is not active
+        // Google Sheets integration stays VISIBLE (needed before activation)
         document.getElementById('linkGeneratorCard').style.display = 'none';
-        document.getElementById('googleSheetsCard').style.display = 'none';
     }
     
     // Update Google Sheets URL if saved
