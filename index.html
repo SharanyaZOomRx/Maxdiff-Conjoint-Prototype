@@ -3174,12 +3174,19 @@ function generateSurveyLinks() {
         return;
     }
     
+    // Check if Google Sheets is configured
+    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
+        alert('⚠️ Google Sheets Not Configured!\n\nYou must set up Google Sheets integration first.\n\nWithout it, survey links will only work in your browser.\n\nPlease:\n1. Scroll up to "Google Sheets Integration"\n2. Paste your Apps Script URL\n3. Click "Save Integration"\n4. Then generate links again.');
+        return;
+    }
+    
     // Save survey configuration to shared storage (so respondents can access it)
     const sharedConfig = {
         surveyConfig: appState.surveyConfig,
         messages: appState.messages,
         attributes: appState.attributes,
         studyDesign: appState.studyDesign,
+        googleSheetsUrl: appState.googleSheetsConfig.webAppUrl, // Include Google Sheets URL
         timestamp: Date.now()
     };
     localStorage.setItem('sharedSurveyConfig', JSON.stringify(sharedConfig));
@@ -3188,9 +3195,13 @@ function generateSurveyLinks() {
     const links = [];
     const timestamp = Date.now();
     
+    // Encode the Google Sheets URL to include in the link
+    const encodedSheetsUrl = encodeURIComponent(appState.googleSheetsConfig.webAppUrl);
+    
     for (let i = 1; i <= numLinks; i++) {
         const respondentId = `R${timestamp}_${String(i).padStart(4, '0')}`;
-        const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}id=${respondentId}`;
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        const url = `${baseUrl}${separator}id=${respondentId}&sheets=${encodedSheetsUrl}`;
         links.push({ id: respondentId, url: url });
     }
     
@@ -3205,24 +3216,37 @@ function generateSurveyLinks() {
     document.getElementById('downloadLinks').style.display = 'inline-block';
     document.getElementById('copyAllLinks').style.display = 'inline-block';
     
-    console.log(`✅ Generated ${links.length} unique survey links`);
+    console.log(`✅ Generated ${links.length} unique survey links with Google Sheets URL embedded`);
 }
 
 async function loadSurveyConfigFromUrl() {
     console.log('🔍 Attempting to load survey configuration...');
     
-    // First, try to get Google Sheets URL from localStorage (if user has accessed admin panel before)
-    try {
-        const saved = localStorage.getItem('maxdiffConjoint');
-        if (saved) {
-            const savedState = JSON.parse(saved);
-            if (savedState.googleSheetsConfig && savedState.googleSheetsConfig.webAppUrl) {
-                appState.googleSheetsConfig = savedState.googleSheetsConfig;
-                console.log('✅ Found Google Sheets URL from previous session');
+    // NEW: Try to get Google Sheets URL from URL parameter (embedded in the link)
+    const urlParams = new URLSearchParams(window.location.search);
+    const sheetsUrlFromLink = urlParams.get('sheets');
+    
+    if (sheetsUrlFromLink) {
+        const decodedUrl = decodeURIComponent(sheetsUrlFromLink);
+        appState.googleSheetsConfig.webAppUrl = decodedUrl;
+        appState.googleSheetsConfig.enabled = true;
+        console.log('✅ Found Google Sheets URL from survey link:', decodedUrl);
+    }
+    
+    // Fallback: Try to get Google Sheets URL from localStorage (if user has accessed admin panel before)
+    if (!appState.googleSheetsConfig.webAppUrl) {
+        try {
+            const saved = localStorage.getItem('maxdiffConjoint');
+            if (saved) {
+                const savedState = JSON.parse(saved);
+                if (savedState.googleSheetsConfig && savedState.googleSheetsConfig.webAppUrl) {
+                    appState.googleSheetsConfig = savedState.googleSheetsConfig;
+                    console.log('✅ Found Google Sheets URL from previous session');
+                }
             }
+        } catch (e) {
+            console.log('No previous session data found');
         }
-    } catch (e) {
-        console.log('No previous session data found');
     }
     
     // Try to load from Google Sheets (works across all browsers)
@@ -3249,7 +3273,7 @@ async function loadSurveyConfigFromUrl() {
     }
     
     // Config not found - show helpful message
-    alert('⚠️ Survey Configuration Missing\n\nThis survey requires Google Sheets integration to be set up.\n\nPlease ask your survey administrator to:\n1. Connect Google Sheets in the Admin Panel\n2. Activate the survey (this saves config to Google Sheets)\n3. Then share the survey links\n\n(Technical: Survey configuration could not be loaded from Google Sheets or localStorage)');
+    alert('⚠️ Survey Configuration Missing\n\nThis survey requires Google Sheets integration to be set up.\n\nPlease ask your survey administrator to:\n1. Connect Google Sheets in the Admin Panel\n2. Activate the survey (this saves config to Google Sheets)\n3. Generate links (this embeds the Google Sheets URL)\n4. Then share the survey links\n\n(Technical: Survey configuration could not be loaded from Google Sheets or localStorage)');
     console.warn('⚠️ No configuration found in Google Sheets or localStorage');
     return false;
 }
