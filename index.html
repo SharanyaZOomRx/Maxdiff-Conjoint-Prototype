@@ -1,0 +1,3554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MaxDiff + Conjoint Survey</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        
+        header {
+            background: white;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .subtitle { color: #666; font-size: 0.95rem; }
+        
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .tab:hover { background: #f5f5f5; }
+        .tab.active { background: #2563eb; color: white; }
+        
+        .card {
+            background: white;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; }
+        
+        .form-group { margin-bottom: 1.5rem; }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        input[type="email"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        textarea { resize: vertical; min-height: 80px; }
+        
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .btn-secondary:hover:not(:disabled) { background: #4b5563; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .button-group { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+        
+        .file-upload input[type="file"] { display: none; }
+        
+        .file-upload-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            background: #f9fafb;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #6b7280;
+        }
+        
+        .file-upload-label:hover { border-color: #2563eb; background: #eff6ff; color: #2563eb; }
+        .file-upload-label.has-file { border-color: #10b981; background: #f0fdf4; color: #10b981; }
+        
+        .hidden { display: none !important; }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        .alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        
+        .stage-indicator {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .stage-indicator h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .stage-indicator p { opacity: 0.9; font-size: 0.95rem; }
+        
+        .survey-question {
+            font-size: 1.125rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+        
+        .maxdiff-container {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 2rem;
+        }
+        
+        .maxdiff-header {
+            display: grid;
+            grid-template-columns: 150px 1fr 150px;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .maxdiff-header-label {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #374151;
+            text-align: center;
+        }
+        
+        .maxdiff-header-label.most { color: #059669; }
+        .maxdiff-header-label.least { color: #dc2626; }
+        
+        .maxdiff-options { display: flex; flex-direction: column; gap: 0.75rem; }
+        
+        .maxdiff-row {
+            display: grid;
+            grid-template-columns: 150px 1fr 150px;
+            gap: 1rem;
+            align-items: center;
+            background: white;
+            padding: 1.25rem;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+        
+        .maxdiff-row:hover { border-color: #2563eb; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        
+        .checkbox-container { display: flex; justify-content: center; align-items: center; }
+        
+        .maxdiff-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
+        
+        .maxdiff-checkbox.most { accent-color: #059669; }
+        .maxdiff-checkbox.least { accent-color: #dc2626; }
+        
+        .maxdiff-message {
+            font-size: 0.95rem;
+            color: #374151;
+            line-height: 1.6;
+        }
+        
+        .conjoint-intro {
+            background: #fffbeb;
+            border: 2px solid #fbbf24;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .conjoint-intro h3 { color: #92400e; margin-bottom: 0.75rem; font-size: 1.125rem; }
+        .conjoint-intro p { color: #78350f; line-height: 1.6; }
+        
+        .conjoint-comparison {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .comparison-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .comparison-subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .vs-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 0 -1rem;
+        }
+        
+        .vs-text {
+            background: #2563eb;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            position: absolute;
+            z-index: 10;
+        }
+        
+        .message-story {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 3px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .message-story:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            border-color: #93c5fd;
+        }
+        
+        .message-story.selected {
+            border-color: #2563eb;
+            background: #eff6ff;
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.2);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .story-label { font-size: 1.5rem; font-weight: 700; }
+        
+        .select-indicator {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #d1d5db;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        
+        .message-story.selected .select-indicator {
+            background: #2563eb;
+            border-color: #2563eb;
+            position: relative;
+        }
+        
+        .message-story.selected .select-indicator::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        
+        .card-message-item {
+            margin-bottom: 1.5rem;
+            padding: 1.25rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .card-message-item:last-child { margin-bottom: 0; }
+        
+        .card-attribute {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #2563eb;
+            margin-bottom: 0.75rem;
+        }
+        
+        .card-message-text {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: #1f2937;
+        }
+        
+        .card-number-badge {
+            position: absolute;
+            top: -12px;
+            right: 2rem;
+            background: #2563eb;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.875rem;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+        
+        .progress-container { margin-bottom: 2rem; }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .stat-label { font-size: 0.875rem; opacity: 0.9; }
+        
+        .filters-panel {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .attribute-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .attribute-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; }
+        
+        .message-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .message-rank {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: #2563eb;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .message-text { flex: 1; font-size: 0.9rem; color: #374151; }
+        
+        .score-badge {
+            flex-shrink: 0;
+            padding: 0.375rem 0.875rem;
+            background: #eff6ff;
+            color: #2563eb;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .conjoint-results-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-top: 2rem;
+        }
+        
+        .conjoint-results-section h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; }
+        
+        .winning-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .winning-card-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1.5rem; opacity: 0.95; }
+        
+        .winning-message {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border-left: 3px solid white;
+        }
+        
+        .winning-message:last-child { margin-bottom: 0; }
+        
+        .winning-attribute {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+        
+        .winning-text { font-size: 0.95rem; line-height: 1.6; }
+        
+        @media (max-width: 968px) {
+            .cards-container { grid-template-columns: 1fr; }
+            .vs-divider { margin: 1rem 0; }
+            .maxdiff-header, .maxdiff-row {
+                grid-template-columns: 80px 1fr 80px;
+                gap: 0.5rem;
+                padding: 1rem;
+            }
+        }
+        
+        /* Overall Progress Bar - Fixed at bottom */
+        .overall-progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            display: none; /* Hidden by default, shown during survey */
+        }
+        
+        .overall-progress-bar.active {
+            display: block;
+        }
+        
+        .overall-progress-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .overall-progress-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .overall-progress-track {
+            width: 100%;
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .overall-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb, #7c3aed);
+            transition: width 0.4s ease;
+            border-radius: 6px;
+        }
+        
+        .overall-progress-percentage {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        /* Add padding to body when progress bar is active */
+        body.survey-active {
+            padding-bottom: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Message Testing Survey Platform: Prototype</h1>
+            <p class="subtitle">Professional two-stage preference measurement system</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="admin">Admin Panel</button>
+            <button class="tab" data-tab="survey">Take Survey</button>
+            <button class="tab" data-tab="results">Results Dashboard</button>
+        </div>
+
+        <!-- ADMIN PANEL -->
+        <div id="adminPanel" class="panel-content">
+            <div class="card">
+                <h2>Survey Configuration</h2>
+                
+                <div class="form-group">
+                    <label for="surveyTitle">Survey Title</label>
+                    <input type="text" id="surveyTitle" value="Healthcare Product Message Testing">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="productName">Product Name *</label>
+                        <input type="text" id="productName" value="Ozempic®" placeholder="e.g., Ozempic®">
+                        <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                            Shown on conjoint cards and replaces [PRODUCT] in questions
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="diseaseName">Disease/Condition Name</label>
+                        <input type="text" id="diseaseName" value="type 2 diabetes" placeholder="e.g., type 2 diabetes">
+                        <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                            Replaces [DISEASE] in questions
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="welcomeText">Welcome Screen Message</label>
+                    <textarea id="welcomeText" rows="8" placeholder="Enter welcome message for respondents">Thank you for participating in this market research study for Ozempic®.
+
+About Ozempic®:
+Ozempic® (semaglutide) is a once-weekly GLP-1 receptor agonist indicated for improving glycemic control in adults with type 2 diabetes, and to reduce the risk of major adverse cardiovascular events in adults with type 2 diabetes and established cardiovascular disease.
+
+Your Expertise Matters:
+Your experience in market research makes you uniquely qualified to predict what messaging would resonate with physicians. For this survey, please put yourself in the shoes of a prescribing physician and answer all questions as if you were making treatment decisions for your type 2 diabetes patients.
+
+This survey has two parts:
+1. Message Ranking (5-10 minutes)
+2. Story Comparison (5-10 minutes)
+
+Your responses are confidential and will be used solely for market research purposes.</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="questionText">MaxDiff Question</label>
+                    <textarea id="questionText" rows="2">Which message most motivates you to prescribe [PRODUCT] to your [DISEASE] patients and which message least motivates you?</textarea>
+                    <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        Use [PRODUCT] and [DISEASE] as placeholders
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="conjointQuestionText">Conjoint Question</label>
+                    <textarea id="conjointQuestionText" rows="2">Which story most motivates you to prescribe [PRODUCT] to your [DISEASE] patients?</textarea>
+                    <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        Question shown in conjoint comparison section
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="sampleSize">Expected Number of Respondents *</label>
+                    <input type="number" id="sampleSize" min="5" max="200" value="50">
+                    <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        Used to calculate optimal experimental design
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="mostLabel">Label for "Most Preferred"</label>
+                    <input type="text" id="mostLabel" value="Most Motivating">
+                </div>
+
+                <div class="form-group">
+                    <label for="leastLabel">Label for "Least Preferred"</label>
+                    <input type="text" id="leastLabel" value="Least Motivating">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="tasksPerRespondent">MaxDiff Tasks</label>
+                        <input type="number" id="tasksPerRespondent" min="3" max="20" value="8">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="itemsPerTask">Items per Task</label>
+                        <input type="number" id="itemsPerTask" min="3" max="7" value="4">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="conjointComparisons">Conjoint Card Comparisons</label>
+                    <input type="number" id="conjointComparisons" min="4" max="12" value="8">
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Upload Messages</h2>
+                <div class="alert alert-info">
+                    <strong>CSV Format:</strong> File must have columns: <code>msg_number</code>, <code>attribute</code>, <code>message</code><br>
+                    (Headers can be uppercase or lowercase - the system will handle both)
+                </div>
+
+                <div class="form-group">
+                    <div class="file-upload">
+                        <input type="file" id="fileUpload" accept=".csv,.xlsx,.xls">
+                        <label for="fileUpload" class="file-upload-label" id="fileLabel">
+                            📁 Click to upload CSV or Excel file
+                        </label>
+                    </div>
+                </div>
+
+                <div id="uploadStatus"></div>
+                <div id="messagesPreview" class="hidden"></div>
+            </div>
+
+            <div class="card">
+                <h2>Survey Status</h2>
+                <div id="surveyStatus" class="alert alert-info">
+                    Survey not yet activated. Upload messages first.
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="activateSurvey" disabled>Activate Survey</button>
+                    <button class="btn btn-secondary" id="testSurvey" disabled>Test Survey</button>
+                    <button class="btn btn-secondary" id="resetSurvey">Reset All Data</button>
+                </div>
+            </div>
+
+            <div class="card" id="linkGeneratorCard" style="display: none;">
+                <h2>🔗 Generate Survey Links</h2>
+                <p style="color: #6b7280; margin-bottom: 1.5rem;">Create unique tracking links for your respondents. Each link includes a unique ID for response tracking.</p>
+                
+                <div class="form-group">
+                    <label for="numLinks">Number of Links to Generate</label>
+                    <input type="number" id="numLinks" min="1" max="500" value="25" placeholder="Enter number (1-500)">
+                </div>
+
+                <div class="form-group">
+                    <label for="baseUrl">Your Survey URL</label>
+                    <input type="text" id="baseUrl" placeholder="https://yourusername.github.io/survey/" 
+                           style="font-family: monospace;">
+                    <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        After deploying to GitHub Pages, enter your URL here
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="generateLinks">Generate Links</button>
+                    <button class="btn btn-secondary" id="downloadLinks" style="display: none;">Download CSV</button>
+                    <button class="btn btn-secondary" id="copyAllLinks" style="display: none;">Copy All</button>
+                </div>
+
+                <div id="linksOutput" style="margin-top: 1.5rem; display: none;">
+                    <h3 style="margin-bottom: 1rem;">Generated Links:</h3>
+                    <div style="max-height: 300px; overflow-y: auto; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
+                        <textarea id="linksTextarea" readonly style="width: 100%; min-height: 200px; font-family: monospace; font-size: 0.85rem; border: none; background: transparent; resize: vertical;"></textarea>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">
+                        <span id="linkCount">0</span> links generated
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="googleSheetsCard" style="display: none;">
+                <h2>📊 Google Sheets Integration</h2>
+                <p style="color: #6b7280; margin-bottom: 1.5rem;">Connect to Google Sheets to automatically save all survey responses.</p>
+                
+                <div class="form-group">
+                    <label for="googleSheetsUrl">Google Apps Script Web App URL</label>
+                    <input type="text" id="googleSheetsUrl" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec" 
+                           style="font-family: monospace;">
+                    <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        Follow setup instructions below to get your URL
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="saveGoogleSheets">Save Integration</button>
+                    <button class="btn btn-secondary" id="testConnection">Test Connection</button>
+                </div>
+
+                <div id="connectionStatus" style="margin-top: 1rem;"></div>
+
+                <details style="margin-top: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 8px;">
+                    <summary style="cursor: pointer; font-weight: 600; color: #2563eb;">📖 Setup Instructions</summary>
+                    <div style="margin-top: 1rem; line-height: 1.8; color: #374151;">
+                        <ol style="padding-left: 1.5rem;">
+                            <li>Open <a href="https://sheets.google.com" target="_blank" style="color: #2563eb;">Google Sheets</a> and create a new spreadsheet</li>
+                            <li>Name it "Survey Responses" (or your preferred name)</li>
+                            <li>Go to <strong>Extensions → Apps Script</strong></li>
+                            <li>Delete any existing code and paste the script from the setup guide</li>
+                            <li>Click <strong>Deploy → New Deployment</strong></li>
+                            <li>Select type: <strong>Web app</strong></li>
+                            <li>Execute as: <strong>Me</strong></li>
+                            <li>Who has access: <strong>Anyone</strong></li>
+                            <li>Click <strong>Deploy</strong> and copy the URL</li>
+                            <li>Paste the URL above and click "Save Integration"</li>
+                        </ol>
+                        <div style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; border-left: 4px solid #2563eb;">
+                            <strong>Need the script?</strong> Click "Download Setup Guide" below to get the complete Google Apps Script code.
+                        </div>
+                    </div>
+                </details>
+
+                <div class="button-group" style="margin-top: 1rem;">
+                    <button class="btn btn-secondary" id="downloadSetupGuide">Download Setup Guide</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAKE SURVEY PANEL -->
+        <div id="surveyPanel" class="panel-content hidden">
+            <div id="surveyInactive" class="card">
+                <h2>Survey Not Available</h2>
+                <p>Please activate the survey from the Admin Panel first.</p>
+            </div>
+
+            <div id="surveyActive" class="hidden">
+                <!-- WELCOME SCREEN WITH RESPONDENT INFO -->
+                <div class="card" id="respondentInfoCard">
+                    <h2 style="color: #2563eb; margin-bottom: 1rem;">Welcome to the Survey</h2>
+                    <div id="welcomeMessage" style="white-space: pre-line; line-height: 1.8; color: #374151; margin-bottom: 2rem; padding: 1.5rem; background: #f9fafb; border-radius: 8px; border-left: 4px solid #2563eb;">
+                    </div>
+                    
+                    <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Before We Begin</h3>
+                    <p style="color: #6b7280; margin-bottom: 1.5rem;">Please provide some basic information about yourself.</p>
+                    
+                    <div class="form-group">
+                        <label for="respondentName">Your Name *</label>
+                        <input type="text" id="respondentName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="respondentRole">Your Role *</label>
+                        <input type="text" id="respondentRole" placeholder="e.g., Market Research Analyst, Healthcare Consultant" required>
+                    </div>
+
+                    <button class="btn btn-primary" id="startSurveyBtn">Start Survey</button>
+                </div>
+
+                <!-- MAXDIFF SECTION -->
+                <div id="maxdiffSection" class="hidden">
+                    <div class="stage-indicator">
+                        <h3>📊 STAGE 1: MaxDiff Ranking</h3>
+                        <p>Identify most and least preferred individual messages</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-text" id="progressText">Choice Set 1 of 8</div>
+                        </div>
+
+                        <div class="survey-question" id="displayQuestion"></div>
+
+                        <div class="maxdiff-container">
+                            <div class="maxdiff-header">
+                                <div class="maxdiff-header-label most" id="headerMost">Most Motivating</div>
+                                <div class="maxdiff-header-label"></div>
+                                <div class="maxdiff-header-label least" id="headerLeast">Least Motivating</div>
+                            </div>
+                            <div class="maxdiff-options" id="optionsGrid"></div>
+                        </div>
+
+                        <div class="button-group">
+                            <button class="btn btn-secondary" id="prevTask">← Previous</button>
+                            <button class="btn btn-primary" id="nextTask" disabled>Next Task →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TRANSITION SCREEN -->
+                <div id="transitionScreen" class="hidden">
+                    <div class="card" style="text-align: center; padding: 3rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1.5rem;">🎉</div>
+                        <h2 style="color: #2563eb; margin-bottom: 1rem; font-size: 1.75rem;">Excellent Work!</h2>
+                        <p style="font-size: 1.125rem; color: #374151; margin-bottom: 2rem; line-height: 1.8;">
+                            You have successfully completed the individual message evaluation phase. 
+                        </p>
+                        <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #2563eb; margin-bottom: 2rem;">
+                            <p style="font-size: 1rem; color: #1f2937; line-height: 1.7;">
+                                In the next section, you will evaluate <strong>complete message stories</strong> presented as pairs. 
+                                Each story combines messages from different attributes. Select the story that you find 
+                                most compelling overall.
+                            </p>
+                        </div>
+                        <button class="btn btn-primary" id="continueToConjoint" style="font-size: 1.125rem; padding: 0.875rem 2rem;">
+                            Continue to Story Comparisons →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CONJOINT SECTION -->
+                <div id="conjointSection" class="hidden">
+                    <div class="stage-indicator">
+                        <h3>🎯 STAGE 2: Message Story Comparison</h3>
+                        <p>Evaluate complete message combinations</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="conjointProgressFill" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-text" id="conjointProgressText">Comparison 1 of 8</div>
+                        </div>
+
+                        <div class="conjoint-comparison">
+                            <div class="comparison-title" id="conjointQuestionDisplay">Which message combination do you prefer?</div>
+                            <div class="comparison-subtitle">Click on the story with the better overall combination</div>
+
+                            <div style="position: relative;">
+                                <div class="cards-container" id="cardsContainer"></div>
+                                <div class="vs-divider">
+                                    <div class="vs-text">VS</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="button-group">
+                            <button class="btn btn-secondary" id="prevConjoint">← Previous</button>
+                            <button class="btn btn-primary" id="nextConjoint" disabled>Next Comparison →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="surveyComplete" class="hidden">
+                    <div class="card">
+                        <h2>✓ Survey Complete!</h2>
+                        <div class="alert alert-success">
+                            <p><strong>Thank you for completing both stages!</strong></p>
+                            <p style="margin-top: 0.75rem;">Survey ID: <strong id="completionId"></strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULTS DASHBOARD -->
+        <div id="resultsPanel" class="panel-content hidden">
+            <div id="noResults" class="card">
+                <h2>Results Dashboard</h2>
+                <div class="alert alert-info">
+                    No survey responses yet. Complete surveys will appear here.
+                </div>
+            </div>
+
+            <div id="hasResults" class="hidden">
+                <!-- Summary Stats -->
+                <div class="card">
+                    <h2>📊 Survey Summary</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Responses</div>
+                            <div class="stat-value" id="totalResponses">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Completion Rate</div>
+                            <div class="stat-value" id="completionRate">0%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Avg. Duration</div>
+                            <div class="stat-value" id="avgDuration">0m</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Product Tested</div>
+                            <div class="stat-value" id="productName">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MaxDiff Results -->
+                <div class="card">
+                    <h2>📈 MaxDiff Analysis - Message Utilities</h2>
+                    <p style="color: #6b7280; margin-bottom: 1.5rem;">
+                        Hierarchical utility scores based on "Most Motivating" vs "Least Motivating" selections
+                    </p>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="font-weight: 600; margin-right: 1rem;">Filter by Attribute:</label>
+                        <select id="filterAttributeMaxdiff" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                            <option value="all">All Attributes</option>
+                        </select>
+                    </div>
+
+                    <div id="maxdiffResultsTable"></div>
+                </div>
+
+                <!-- Conjoint Results -->
+                <div class="card">
+                    <h2>🏆 Conjoint Analysis - Winning Combinations</h2>
+                    <p style="color: #6b7280; margin-bottom: 1.5rem;">
+                        Message combinations with highest preference shares
+                    </p>
+
+                    <h3 style="margin: 2rem 0 1rem 0; font-size: 1.1rem; color: #2563eb;">
+                        Overall Winning Combination (Across All Respondents)
+                    </h3>
+                    <div id="overallWinningCombo" style="margin-bottom: 2rem;"></div>
+
+                    <h3 style="margin: 2rem 0 1rem 0; font-size: 1.1rem; color: #2563eb;">
+                        Preference Share by Message Combination
+                    </h3>
+                    <div id="conjointPreferenceTable"></div>
+
+                    <h3 style="margin: 2rem 0 1rem 0; font-size: 1.1rem; color: #374151;">
+                        Individual Respondent Choices
+                    </h3>
+                    <div id="respondentConjointTable"></div>
+                </div>
+
+                <!-- Attribute-Level Analysis -->
+                <div class="card">
+                    <h2>🎯 Attribute-Level Importance</h2>
+                    <p style="color: #6b7280; margin-bottom: 1.5rem;">
+                        Which attributes drive preference? (Based on conjoint selections)
+                    </p>
+                    <div id="attributeImportanceChart"></div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="card">
+                    <h2>📥 Export Results</h2>
+                    <div class="button-group">
+                        <button class="btn btn-primary" id="exportResults">Export Full Data (JSON)</button>
+                        <button class="btn btn-primary" id="exportCSV">Export Summary (CSV)</button>
+                        <button class="btn btn-secondary" id="exportMaxdiffCSV">Export MaxDiff Details</button>
+                        <button class="btn btn-secondary" id="exportConjointCSV">Export Conjoint Details</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Progress Bar (Fixed at Bottom) -->
+    <div class="overall-progress-bar" id="overallProgressBar">
+        <div class="overall-progress-content">
+            <div class="overall-progress-label">Overall Survey Progress</div>
+            <div class="overall-progress-track">
+                <div class="overall-progress-fill" id="overallProgressFill" style="width: 0%"></div>
+                <div class="overall-progress-percentage" id="overallProgressPercentage">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// ============================================
+// OPTIMIZATION FUNCTIONS FOR MAXDIFF + CONJOINT
+// Sample-size aware balanced experimental design
+// ============================================
+
+/**
+ * Calculate optimal conjoint comparisons based on study parameters
+ */
+function calculateOptimalConjointComparisons(numAttributes, sampleSize, powerLevel = 'standard') {
+    const totalMessages = numAttributes * 3; // Top 3 per attribute
+    
+    const targetAppearances = {
+        'conservative': 80,   // SE ±3.5%
+        'standard': 120,      // SE ±2.9%
+        'high': 150          // SE ±2.6%
+    }[powerLevel];
+    
+    const totalSlots = totalMessages * targetAppearances;
+    const cardsNeeded = totalSlots / numAttributes;
+    const cardsPerRespondent = cardsNeeded / sampleSize;
+    const comparisonsPerRespondent = Math.ceil(cardsPerRespondent / 2);
+    
+    // Constraints
+    const minComparisons = 4;
+    const maxComparisons = 15;
+    // const minComparisons = 4;  // Allow as low as 4 // DUPLICATE - REMOVED
+    const optimal = Math.max(minComparisons, Math.min(maxComparisons, comparisonsPerRespondent));
+    
+    // Calculate actual statistics
+    const actualCards = optimal * 2 * sampleSize;
+    const actualSlots = actualCards * numAttributes;
+    const actualAppearancesPerMessage = actualSlots / totalMessages;
+    const standardError = (1 / Math.sqrt(actualAppearancesPerMessage)) * 100;
+    const totalPossible = Math.pow(3, numAttributes);
+    
+    return {
+        comparisonsPerRespondent: optimal,
+        totalCards: actualCards,
+        totalComparisons: optimal * sampleSize,
+        appearancesPerMessage: Math.round(actualAppearancesPerMessage),
+        standardError: standardError.toFixed(1),
+        coverage: Math.min(100, (actualCards / totalPossible) * 100).toFixed(1),
+        totalPossible: totalPossible
+    };
+}
+
+/**
+ * Generate balanced MaxDiff tasks across all respondents
+ * Sample-size aware allocation
+ */
+/**
+ * Generate BIBD-optimized MaxDiff design with:
+ * - Balanced appearance frequency across all messages
+ * - Position randomization (each message appears in all positions equally)
+ * - Orthogonality (minimize co-occurrence of message pairs)
+ * - Cross-attribute mixing allowed
+ */
+function generateStudyWideMaxDiff(messages, sampleSize, tasksPerRespondent, itemsPerTask) {
+    const totalSlots = sampleSize * tasksPerRespondent * itemsPerTask;
+    const numMessages = messages.length;
+    const targetPerMessage = totalSlots / numMessages;
+    const baseAppearances = Math.floor(targetPerMessage);
+    const extraSlots = totalSlots - (baseAppearances * numMessages);
+    
+    console.log(`🔬 BIBD MaxDiff Design Generation:
+        Sample size: ${sampleSize}
+        Tasks per respondent: ${tasksPerRespondent}
+        Items per task: ${itemsPerTask}
+        Total slots: ${totalSlots}
+        Messages: ${numMessages}
+        Target appearances per message: ${targetPerMessage.toFixed(2)}
+        Base appearances: ${baseAppearances}
+        Extra appearances needed: ${extraSlots}
+    `);
+    
+    // Step 1: Create balanced message pool
+    const messageAppearances = messages.map((msg, idx) => ({
+        message: msg,
+        targetAppearances: baseAppearances + (idx < extraSlots ? 1 : 0),
+        actualAppearances: 0,
+        positionCounts: new Array(itemsPerTask).fill(0), // Track position balance
+        pairCounts: {} // Track co-occurrence for orthogonality
+    }));
+    
+    // Initialize pair tracking
+    messageAppearances.forEach((m1, i) => {
+        messages.forEach((m2, j) => {
+            if (i !== j) {
+                m1.pairCounts[m2.msgNumber] = 0;
+            }
+        });
+    });
+    
+    // Step 2: Generate tasks with BIBD constraints
+    const allRespondentDesigns = [];
+    
+    for (let r = 0; r < sampleSize; r++) {
+        const respondentTasks = [];
+        
+        for (let t = 0; t < tasksPerRespondent; t++) {
+            const task = [];
+            const selectedIndices = new Set();
+            const usedAttributes = new Set(); // Track attributes already in this task
+            
+            // Select messages for this task with balanced frequency AND attribute diversity
+            for (let slot = 0; slot < itemsPerTask; slot++) {
+                // Find eligible messages (haven't reached target, not already in this task, attribute not used)
+                const eligible = messageAppearances
+                    .map((m, idx) => ({ m, idx }))
+                    .filter(({m, idx}) => 
+                        m.actualAppearances < m.targetAppearances && 
+                        !selectedIndices.has(idx) &&
+                        !usedAttributes.has(m.message.attribute) // CRITICAL: No duplicate attributes
+                    )
+                    .sort((a, b) => {
+                        // Prioritize by: 1) fewest appearances, 2) fewest in this position
+                        const appearanceDiff = a.m.actualAppearances - b.m.actualAppearances;
+                        if (appearanceDiff !== 0) return appearanceDiff;
+                        return a.m.positionCounts[slot] - b.m.positionCounts[slot];
+                    });
+                
+                if (eligible.length === 0) {
+                    console.warn(`⚠️ Not enough messages for task ${t + 1}, slot ${slot + 1} (${usedAttributes.size} attributes already used)`);
+                    break;
+                }
+                
+                // Select message with lowest orthogonality conflict
+                let bestIdx = 0;
+                if (task.length > 0) {
+                    let minPairConflict = Infinity;
+                    for (let i = 0; i < Math.min(3, eligible.length); i++) {
+                        const candidate = eligible[i];
+                        const pairConflict = task.reduce((sum, existing) => 
+                            sum + (candidate.m.pairCounts[existing.msgNumber] || 0), 0
+                        );
+                        if (pairConflict < minPairConflict) {
+                            minPairConflict = pairConflict;
+                            bestIdx = i;
+                        }
+                    }
+                }
+                
+                const selected = eligible[bestIdx];
+                task.push({...selected.m.message});
+                selectedIndices.add(selected.idx);
+                usedAttributes.add(selected.m.message.attribute); // Mark attribute as used
+                
+                // Update tracking
+                selected.m.actualAppearances++;
+                selected.m.positionCounts[slot]++;
+                
+                // Update pair co-occurrence
+                task.forEach((existingMsg, existingIdx) => {
+                    if (existingIdx < task.length - 1) {
+                        selected.m.pairCounts[existingMsg.msgNumber] = 
+                            (selected.m.pairCounts[existingMsg.msgNumber] || 0) + 1;
+                    }
+                });
+            }
+            
+            // Position randomization for THIS task only (maintain position balance globally)
+            const randomizedTask = shuffleArray(task);
+            respondentTasks.push(randomizedTask);
+        }
+        
+        allRespondentDesigns.push(respondentTasks);
+    }
+    
+    // Step 3: Validate design quality
+    console.log('📊 Design Quality Metrics:');
+    const appearanceStats = messageAppearances.map(m => m.actualAppearances);
+    console.log(`   Appearances: min=${Math.min(...appearanceStats)}, max=${Math.max(...appearanceStats)}, target=${targetPerMessage.toFixed(1)}`);
+    
+    const positionBalance = messageAppearances.map(m => {
+        const variance = m.positionCounts.reduce((sum, count) => {
+            const expected = m.actualAppearances / itemsPerTask;
+            return sum + Math.pow(count - expected, 2);
+        }, 0);
+        return Math.sqrt(variance / itemsPerTask);
+    });
+    console.log(`   Position balance (lower=better): avg=${(positionBalance.reduce((a,b)=>a+b,0)/positionBalance.length).toFixed(2)}`);
+    
+    return allRespondentDesigns;
+}
+
+/**
+ * Generate balanced Conjoint pairs across all respondents
+ * Sample-size aware allocation with message balance
+ */
+/**
+ * Generate Conjoint pairs with:
+ * - Top 3 messages per attribute
+ * - Unique card combinations (no duplicates)
+ * - Balanced message usage
+ * - Orthogonal design where possible
+ */
+function generateStudyWideConjoint(top3ByAttribute, sampleSize, comparisonsPerRespondent) {
+    const attributes = Object.keys(top3ByAttribute);
+    const numAttributes = attributes.length;
+    const totalCards = sampleSize * comparisonsPerRespondent * 2;
+    
+    // Track message usage globally
+    const messageUsage = {};
+    Object.values(top3ByAttribute).forEach(msgs => {
+        msgs.forEach(msg => {
+            messageUsage[msg.msgNumber] = 0;
+        });
+    });
+    
+    console.log(`🔬 Conjoint Study Design:
+        Sample size: ${sampleSize}
+        Comparisons per person: ${comparisonsPerRespondent}
+        Total cards needed: ${totalCards}
+        Attributes: ${numAttributes}
+        Messages per attribute: 3
+        Theoretical unique combinations: ${Math.pow(3, numAttributes)}
+    `);
+    
+    // Track unique combinations to avoid duplicates
+    const usedCombinations = new Set();
+    const allCards = [];
+    
+    // Generate unique cards with balanced message usage
+    let attempts = 0;
+    const maxAttempts = totalCards * 10; // Safety limit
+    
+    while (allCards.length < totalCards && attempts < maxAttempts) {
+        attempts++;
+        const card = {};
+        
+        // Build card with one message per attribute
+        attributes.forEach(attr => {
+            const top3 = top3ByAttribute[attr];
+            
+            // Select least-used message for this attribute
+            const sortedByUsage = [...top3].sort((a, b) => 
+                messageUsage[a.msgNumber] - messageUsage[b.msgNumber]
+            );
+            
+            // Try least-used first, but may need to try others for uniqueness
+            let selectedIdx = 0;
+            if (allCards.length > Math.pow(3, numAttributes) * 0.5) {
+                // As we use more combinations, allow some randomness
+                selectedIdx = Math.floor(Math.random() * Math.min(2, top3.length));
+            }
+            
+            card[attr] = {...sortedByUsage[selectedIdx]};
+        });
+        
+        // Create unique key for this combination
+        const cardKey = attributes
+            .map(attr => card[attr].msgNumber)
+            .sort()
+            .join('-');
+        
+        // Check if this combination is unique
+        if (!usedCombinations.has(cardKey)) {
+            usedCombinations.add(cardKey);
+            allCards.push(card);
+            
+            // Update usage counts
+            attributes.forEach(attr => {
+                messageUsage[card[attr].msgNumber]++;
+            });
+        }
+    }
+    
+    if (allCards.length < totalCards) {
+        console.warn(`⚠️ Could only generate ${allCards.length} unique cards out of ${totalCards} requested`);
+        console.warn(`   Maximum unique combinations possible: ${Math.pow(3, numAttributes)}`);
+    }
+    
+    // Shuffle cards to randomize order
+    const shuffledCards = shuffleArray(allCards);
+    
+    // Helper to check if two cards are sufficiently different
+    // Cards must differ in at least HALF the attributes (rounded up)
+    function cardsAreDifferent(card1, card2) {
+        const numAttributes = attributes.length;
+        const minDifferences = Math.ceil(numAttributes / 2); // At least 50% different
+        
+        let differences = 0;
+        for (let attr of attributes) {
+            if (card1[attr].msgNumber !== card2[attr].msgNumber) {
+                differences++;
+            }
+        }
+        
+        // Return true if at least half the attributes differ
+        return differences >= minDifferences;
+    }
+    
+    // Distribute to respondents as pairs - GUARANTEEING valid pairs for each respondent
+    const allRespondentDesigns = [];
+    const usedPairSignatures = new Set(); // Track which card pairs have been used
+    
+    function getPairSignature(card1, card2) {
+        // Create a unique signature for this pair (order-independent)
+        const sig1 = Object.keys(card1).sort().map(k => `${k}:${card1[k].msgNumber}`).join('|');
+        const sig2 = Object.keys(card2).sort().map(k => `${k}:${card2[k].msgNumber}`).join('|');
+        return sig1 < sig2 ? `${sig1}::${sig2}` : `${sig2}::${sig1}`;
+    }
+    
+    function findValidPair(availableCards, startIndex) {
+        // Try to find a valid pair starting from startIndex
+        for (let i = startIndex; i < availableCards.length - 1; i++) {
+            for (let j = i + 1; j < availableCards.length; j++) {
+                const card1 = availableCards[i];
+                const card2 = availableCards[j];
+                
+                if (cardsAreDifferent(card1, card2)) {
+                    const pairSig = getPairSignature(card1, card2);
+                    if (!usedPairSignatures.has(pairSig)) {
+                        return { card1, card2, index1: i, index2: j, signature: pairSig };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
+    console.log('🔄 Starting intelligent pair distribution...');
+    
+    for (let r = 0; r < sampleSize; r++) {
+        const respondentPairs = [];
+        const availableCards = [...shuffledCards]; // Clone the deck for this respondent
+        
+        for (let c = 0; c < comparisonsPerRespondent; c++) {
+            const validPair = findValidPair(availableCards, 0);
+            
+            if (validPair) {
+                respondentPairs.push({
+                    card1: validPair.card1,
+                    card2: validPair.card2
+                });
+                usedPairSignatures.add(validPair.signature);
+                
+                // Remove used cards from available pool
+                availableCards.splice(Math.max(validPair.index1, validPair.index2), 1);
+                availableCards.splice(Math.min(validPair.index1, validPair.index2), 1);
+                
+                console.log(`   ✓ R${r + 1} Comparison ${c + 1}: Found valid pair with ${countDifferences(validPair.card1, validPair.card2)}/${attributes.length} differences`);
+            } else {
+                console.error(`   ❌ R${r + 1} Comparison ${c + 1}: Could not find valid pair from remaining ${availableCards.length} cards`);
+                
+                // FALLBACK: Generate a fresh pair from top 3 messages
+                const fallbackPair = generateFreshPair(usedPairSignatures);
+                if (fallbackPair) {
+                    respondentPairs.push(fallbackPair);
+                    usedPairSignatures.add(getPairSignature(fallbackPair.card1, fallbackPair.card2));
+                    console.log(`   🔄 Generated fresh pair as fallback`);
+                }
+            }
+        }
+        
+        allRespondentDesigns.push(respondentPairs);
+    }
+    
+    function countDifferences(card1, card2) {
+        let diff = 0;
+        for (let attr of attributes) {
+            if (card1[attr].msgNumber !== card2[attr].msgNumber) diff++;
+        }
+        return diff;
+    }
+    
+    function generateFreshPair(usedSignatures) {
+        const maxAttempts = 100;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const card1 = {};
+            const card2 = {};
+            
+            attributes.forEach(attr => {
+                const msgs = top3ByAttribute[attr];
+                card1[attr] = {...msgs[Math.floor(Math.random() * msgs.length)]};
+                card2[attr] = {...msgs[Math.floor(Math.random() * msgs.length)]};
+            });
+            
+            if (cardsAreDifferent(card1, card2)) {
+                const sig = getPairSignature(card1, card2);
+                if (!usedSignatures.has(sig)) {
+                    return { card1, card2 };
+                }
+            }
+        }
+        return null;
+    }
+    
+    // CRITICAL VALIDATION: Check every pair in the design
+    console.log('🔍 Validating conjoint design...');
+    let totalPairs = 0;
+    let validPairs = 0;
+    let identicalPairs = 0;
+    let insufficientDiffPairs = 0;
+    const minDiff = Math.ceil(attributes.length / 2);
+    
+    allRespondentDesigns.forEach((respondentPairs, rIdx) => {
+        respondentPairs.forEach((pair, pIdx) => {
+            totalPairs++;
+            
+            let differences = 0;
+            for (let attr of attributes) {
+                if (pair.card1[attr].msgNumber !== pair.card2[attr].msgNumber) {
+                    differences++;
+                }
+            }
+            
+            if (differences === 0) {
+                identicalPairs++;
+                console.error(`❌ DESIGN ERROR: Respondent ${rIdx + 1}, Pair ${pIdx + 1} has IDENTICAL cards!`);
+            } else if (differences < minDiff) {
+                insufficientDiffPairs++;
+                console.warn(`⚠️ Respondent ${rIdx + 1}, Pair ${pIdx + 1} only has ${differences}/${attributes.length} differences (need ${minDiff})`);
+            } else {
+                validPairs++;
+            }
+        });
+    });
+    
+    console.log('✅ Design Validation Complete:');
+    console.log(`   Total pairs: ${totalPairs}`);
+    console.log(`   Valid pairs: ${validPairs} (${((validPairs/totalPairs)*100).toFixed(1)}%)`);
+    console.log(`   Identical pairs: ${identicalPairs}`);
+    console.log(`   Insufficient differences: ${insufficientDiffPairs}`);
+    
+    if (identicalPairs > 0) {
+        console.error('🚨 CRITICAL: Design contains identical pairs! This should not happen.');
+    }
+    
+    // Log design quality
+    console.log('📊 Conjoint Design Quality:');
+    console.log(`   Unique combinations generated: ${usedCombinations.size}`);
+    console.log(`   Cards per respondent: ${comparisonsPerRespondent * 2}`);
+    
+    const usageStats = Object.values(messageUsage);
+    console.log(`   Message usage: min=${Math.min(...usageStats)}, max=${Math.max(...usageStats)}, avg=${(usageStats.reduce((a,b)=>a+b,0)/usageStats.length).toFixed(1)}`);
+    
+    return allRespondentDesigns;
+}
+
+/**
+ * Fisher-Yates shuffle for true randomization
+ */
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+/**
+ * Calculate MaxDiff statistics for study
+ */
+function calculateMaxDiffStatistics(messages, sampleSize, tasksPerRespondent, itemsPerTask) {
+    const totalSlots = sampleSize * tasksPerRespondent * itemsPerTask;
+    const numMessages = messages.length;
+    const avgAppearances = totalSlots / numMessages;
+    const standardError = (1 / Math.sqrt(avgAppearances)) * 100;
+    
+    return {
+        totalSlots,
+        avgAppearances: avgAppearances.toFixed(1),
+        standardError: standardError.toFixed(1),
+        coverage: numMessages <= totalSlots ? 100 : ((totalSlots / numMessages) * 100).toFixed(1)
+    };
+}
+
+/**
+ * Get design recommendations based on inputs
+ */
+function getDesignRecommendations(numMessages, numAttributes, sampleSize) {
+    const recommendations = [];
+    
+    // MaxDiff recommendations
+    if (sampleSize < 15) {
+        recommendations.push({
+            type: 'warning',
+            message: 'Sample size below 15 may not provide reliable MaxDiff results. Consider 20+ respondents for publication-quality data.'
+        });
+    }
+    
+    // Conjoint recommendations
+    const totalPossible = Math.pow(3, numAttributes);
+    if (sampleSize < 10) {
+        recommendations.push({
+            type: 'warning',
+            message: `With ${numAttributes} attributes (${totalPossible} possible combinations), recommend 15+ respondents for adequate conjoint coverage.`
+        });
+    }
+    
+    // Time estimate
+    const maxdiffTime = 8; // minutes
+    const conjointCalc = calculateOptimalConjointComparisons(numAttributes, sampleSize, 'standard');
+    const conjointTime = conjointCalc.comparisonsPerRespondent * 0.75; // 45 sec per comparison
+    const totalTime = maxdiffTime + conjointTime;
+    
+    recommendations.push({
+        type: 'info',
+        message: `Estimated time per respondent: ${Math.round(totalTime)} minutes (${maxdiffTime} min MaxDiff + ${Math.round(conjointTime)} min Conjoint)`
+    });
+    
+    return recommendations;
+}
+
+
+let appState = {
+    surveyConfig: {
+        title: '',
+        productName: 'Ozempic®',
+        diseaseName: 'type 2 diabetes',
+        questionText: '',
+        mostLabel: '',
+        leastLabel: '',
+        tasksPerRespondent: 8,
+        itemsPerTask: 5,
+        conjointComparisons: 8,
+        isActive: false
+    },
+    googleSheetsConfig: {
+        webAppUrl: '',
+        enabled: false
+    },
+    messages: [],
+    attributes: [],
+    responses: [],
+    currentRespondent: null,
+    currentTask: 0,
+    currentConjointTask: 0,
+    taskSets: [],
+    conjointPairs: [],
+    currentResponses: [],
+    currentConjointResponses: [],
+    top3ByAttribute: {},
+    studyDesign: {
+        maxdiffDesigns: [],
+        conjointDesigns: [],
+        sampleSize: 0
+    },
+    nextRespondentIndex: 0
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadFromLocalStorage();
+    setupEventListeners();
+    updateUI();
+});
+
+function setupEventListeners() {
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            switchTab(this.dataset.tab);
+        });
+    });
+
+    // Core listeners (always exist)
+    document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
+    document.getElementById('activateSurvey').addEventListener('click', activateSurvey);
+    document.getElementById('testSurvey').addEventListener('click', testSurvey);
+    document.getElementById('resetSurvey').addEventListener('click', resetSurvey);
+    
+    // Survey flow listeners (exist after activation)
+    safeAddListener('startSurveyBtn', startSurvey);
+    safeAddListener('continueToConjoint', showConjointSection);
+    safeAddListener('prevTask', previousTask);
+    safeAddListener('nextTask', nextTask);
+    safeAddListener('prevConjoint', previousConjoint);
+    safeAddListener('nextConjoint', nextConjoint);
+    
+    // Results listeners
+    safeAddListener('applyFilters', applyFilters);
+    safeAddListener('exportResults', exportResults);
+    safeAddListener('exportCSV', exportCSV);
+    
+    // Link Generator listeners (appear after activation)
+    safeAddListener('generateLinks', generateSurveyLinks);
+    safeAddListener('downloadLinks', downloadLinksCSV);
+    safeAddListener('copyAllLinks', copyAllLinks);
+    
+    // Google Sheets listeners (appear after activation)
+    safeAddListener('saveGoogleSheets', saveGoogleSheetsConfig);
+    safeAddListener('testConnection', testGoogleSheetsConnection);
+    safeAddListener('downloadSetupGuide', downloadGoogleSheetsGuide);
+    
+    // New listeners for optimization
+    document.getElementById('sampleSize').addEventListener('input', updateDesignCalculation);
+    document.getElementById('tasksPerRespondent').addEventListener('input', updateDesignCalculation);
+    document.getElementById('itemsPerTask').addEventListener('input', updateDesignCalculation);
+}
+
+function safeAddListener(elementId, handler) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.addEventListener('click', handler);
+    }
+}
+
+// Auto-calculate conjoint comparisons when inputs change
+function updateDesignCalculation() {
+    const sampleSize = parseInt(document.getElementById('sampleSize').value) || 25;
+    const numAttributes = appState.attributes.length;
+    
+    if (numAttributes > 0 && sampleSize > 0) {
+        const powerLevel = 'standard';
+        const design = calculateOptimalConjointComparisons(numAttributes, sampleSize, powerLevel);
+        
+        // Update conjoint comparisons field (but keep 8 as initial default)
+        const conjointField = document.getElementById('conjointComparisons');
+        if (conjointField.value == '' || conjointField.value == '8') {
+            // Keep 8 as default, don't override
+            conjointField.value = 8;
+        } else {
+            // Update only if user hasn't manually changed it
+            conjointField.value = design.comparisonsPerRespondent;
+        }
+        
+        // Show why
+        console.log(`Auto-calculated: ${design.comparisonsPerRespondent} comparisons for ${sampleSize} respondents with ${numAttributes} attributes`);
+    }
+}
+
+function switchTab(tabName) {
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+    document.querySelectorAll('.panel-content').forEach(panel => {
+        panel.classList.add('hidden');
+    });
+    document.getElementById(tabName + 'Panel').classList.remove('hidden');
+
+    if (tabName === 'results') {
+        displayResults();
+    }
+    
+    // Display welcome message when opening survey tab
+    if (tabName === 'survey') {
+        displayWelcomeMessage();
+    }
+}
+
+function displayWelcomeMessage() {
+    // Read DIRECTLY from textarea (current value), not from saved state
+    const welcomeTextarea = document.getElementById('welcomeText');
+    let welcomeMsg;
+    
+    if (welcomeTextarea && welcomeTextarea.value.trim()) {
+        // Use current textarea value
+        welcomeMsg = welcomeTextarea.value.trim();
+    } else if (appState.surveyConfig.welcomeText) {
+        // Fallback to saved config
+        welcomeMsg = appState.surveyConfig.welcomeText;
+    } else {
+        // Fallback to default
+        welcomeMsg = getDefaultWelcomeText();
+    }
+    
+    const welcomeMsgEl = document.getElementById('welcomeMessage');
+    if (welcomeMsgEl) {
+        welcomeMsgEl.textContent = welcomeMsg;
+        console.log('✅ Welcome message displayed (length:', welcomeMsg.length, 'chars)');
+    }
+}
+
+function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const fileLabel = document.getElementById('fileLabel');
+    fileLabel.textContent = `✓ ${file.name}`;
+    fileLabel.classList.add('has-file');
+
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        Papa.parse(e.target.result, {
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: false,
+            transformHeader: function(h) {
+                return h.trim().toLowerCase();
+            },
+            complete: function(results) {
+                try {
+                    console.log('Parsed data:', results);
+
+                    appState.messages = results.data
+                        .map((row) => {
+                            // Try all possible column name variations
+                            const msgNum = row['msg_number'] || row['msgnumber'] || row['msg number'] || 
+                                         row['number'] || row['id'] || row['msg_id'];
+                            const attr = row['attribute'] || row['category'] || row['type'];
+                            const msg = row['message'] || row['text'] || row['content'];
+                            
+                            return {
+                                msgNumber: String(msgNum || '').trim(),
+                                attribute: String(attr || '').trim(),
+                                message: String(msg || '').trim()
+                            };
+                        })
+                        .filter(m => m.msgNumber && m.attribute && m.message);
+
+                    if (appState.messages.length === 0) {
+                        throw new Error('No valid messages found. Please check your CSV has columns: msg_number, attribute, message');
+                    }
+
+                    appState.attributes = [...new Set(appState.messages.map(m => m.attribute))];
+
+                    showStatus('success', `✓ Loaded ${appState.messages.length} messages across ${appState.attributes.length} attributes`);
+                    
+                    showMessagesPreview();
+                    document.getElementById('activateSurvey').disabled = false;
+                    document.getElementById('testSurvey').disabled = false;
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    showStatus('error', error.message);
+                }
+            },
+            error: function(error) {
+                console.error('Parse error:', error);
+                showStatus('error', 'Failed to parse CSV: ' + error.message);
+            }
+        });
+    };
+
+    reader.readAsText(file, 'UTF-8');
+}
+
+function showStatus(type, message) {
+    const status = document.getElementById('uploadStatus');
+    status.className = `alert alert-${type}`;
+    status.textContent = message;
+    status.classList.remove('hidden');
+}
+
+function showMessagesPreview() {
+    const preview = document.getElementById('messagesPreview');
+    
+    let html = '<div class="alert alert-success" style="margin-top: 1rem;">';
+    html += `<strong>✓ File loaded successfully!</strong><br>`;
+    html += `${appState.messages.length} messages across ${appState.attributes.length} attributes<br>`;
+    html += `<strong>Attributes:</strong> ${appState.attributes.join(', ')}`;
+    html += '</div>';
+
+    preview.innerHTML = html;
+    preview.classList.remove('hidden');
+}
+
+
+function generateStudyDesign(sampleSize, tasksPerRespondent, itemsPerTask) {
+    console.log(`Generating design for ${sampleSize} respondents...`);
+    
+    // Ensure studyDesign object exists
+    if (!appState.studyDesign) {
+        appState.studyDesign = {
+            maxdiffDesigns: [],
+            conjointDesigns: [],
+            sampleSize: 0
+        };
+    }
+    
+    // Generate MaxDiff designs for all respondents
+    appState.studyDesign.maxdiffDesigns = generateStudyWideMaxDiff(
+        appState.messages,
+        sampleSize,
+        tasksPerRespondent,
+        itemsPerTask
+    );
+    
+    // Store for later conjoint generation (after MaxDiff completion)
+    appState.studyDesign.sampleSize = sampleSize;
+    
+    console.log('✅ Study-wide design generated');
+    console.log(`   MaxDiff: ${appState.studyDesign.maxdiffDesigns.length} unique respondent designs`);
+    
+    saveToLocalStorage();
+}
+
+function activateSurvey() {
+    console.log('🔧 Activating survey...');
+    
+    // Validate that messages are loaded
+    if (!appState.messages || appState.messages.length === 0) {
+        alert('Please upload messages first before activating the survey.');
+        return;
+    }
+    
+    // Save configuration
+    const sampleSize = parseInt(document.getElementById('sampleSize').value) || 50;
+    
+    appState.surveyConfig = {
+        title: document.getElementById('surveyTitle').value,
+        productName: document.getElementById('productName').value || 'Ozempic®',
+        diseaseName: document.getElementById('diseaseName').value || 'type 2 diabetes',
+        questionText: document.getElementById('questionText').value,
+        conjointQuestionText: document.getElementById('conjointQuestionText').value,
+        mostLabel: document.getElementById('mostLabel').value,
+        leastLabel: document.getElementById('leastLabel').value,
+        tasksPerRespondent: parseInt(document.getElementById('tasksPerRespondent').value),
+        itemsPerTask: parseInt(document.getElementById('itemsPerTask').value),
+        conjointComparisons: parseInt(document.getElementById('conjointComparisons').value),
+        sampleSize: sampleSize, // SAVE SAMPLE SIZE
+        isActive: true
+    };
+    
+    // Generate study-wide experimental design for all respondents
+    console.log(`📊 Generating study design for ${sampleSize} respondents...`);
+    
+    generateStudyDesign(
+        sampleSize,
+        appState.surveyConfig.tasksPerRespondent,
+        appState.surveyConfig.itemsPerTask
+    );
+
+    saveToLocalStorage();
+    updateUI();
+
+    const statusBox = document.getElementById('surveyStatus');
+    statusBox.className = 'alert alert-success';
+    statusBox.innerHTML = `✓ Survey is now ACTIVE!<br><small>Pre-generated designs for ${sampleSize} respondents</small>`;
+    
+    console.log('✅ Survey activated successfully');
+}
+
+function testSurvey() {
+    activateSurvey();
+    switchTab('survey');
+}
+
+function resetSurvey() {
+    if (confirm('⚠️ Reset ALL data? This cannot be undone.')) {
+        localStorage.clear();
+        location.reload();
+    }
+}
+
+function startSurvey() {
+    console.log('🚀 Start Survey clicked!');
+    
+    const name = document.getElementById('respondentName').value.trim();
+    const role = document.getElementById('respondentRole').value.trim();
+
+    console.log('Name:', name, 'Role:', role);
+    console.log('Survey active:', appState.surveyConfig.isActive);
+
+    if (!name || !role) {
+        alert('Please enter your name and role');
+        return;
+    }
+    
+    if (!appState.surveyConfig.isActive) {
+        alert('Survey is not active. Please activate it from Admin Panel first.');
+        return;
+    }
+
+    console.log('✅ Creating respondent...');
+
+    appState.currentRespondent = {
+        id: 'R' + Date.now(),
+        name: name,
+        role: role,
+        startTime: new Date().toISOString(),
+        maxdiffResponses: [],
+        conjointResponses: []
+    };
+
+    console.log('✅ Generating tasks...');
+    generateTaskSets();
+    
+    console.log('✅ Hiding welcome, showing MaxDiff...');
+    document.getElementById('respondentInfoCard').classList.add('hidden');
+    document.getElementById('maxdiffSection').classList.remove('hidden');
+    
+    appState.currentTask = 0;
+    appState.currentResponses = [];
+    
+    // Show overall progress bar
+    showOverallProgress();
+    
+    console.log('✅ Rendering first task...');
+    renderTask();
+}
+
+function generateTaskSets() {
+    // Use pre-generated study-wide design
+    if (appState.studyDesign.maxdiffDesigns && appState.studyDesign.maxdiffDesigns.length > 0) {
+        const respondentIndex = appState.nextRespondentIndex % appState.studyDesign.maxdiffDesigns.length;
+        appState.taskSets = appState.studyDesign.maxdiffDesigns[respondentIndex];
+        appState.nextRespondentIndex++;
+        console.log(`Assigned MaxDiff design #${respondentIndex + 1} to respondent`);
+    } else {
+        // Fallback to old method if no study design
+        appState.taskSets = [];
+        const messages = [...appState.messages];
+        for (let i = 0; i < appState.surveyConfig.tasksPerRespondent; i++) {
+            const shuffled = messages.sort(() => Math.random() - 0.5);
+            appState.taskSets.push(shuffled.slice(0, appState.surveyConfig.itemsPerTask));
+        }
+    }
+}
+
+
+function replaceQuestionPlaceholders(text) {
+    const productName = appState.surveyConfig.productName || 'this product';
+    const diseaseName = appState.surveyConfig.diseaseName || 'type 2 diabetes';
+    
+    return text
+        .replace(/\[PRODUCT\]/g, productName)
+        .replace(/\[DISEASE\]/g, diseaseName);
+}
+
+function renderTask() {
+    const task = appState.taskSets[appState.currentTask];
+    
+    const progress = ((appState.currentTask + 1) / appState.surveyConfig.tasksPerRespondent) * 100;
+    document.getElementById('progressFill').style.width = progress + '%';
+    document.getElementById('progressText').textContent = 
+        `Choice Set ${appState.currentTask + 1} of ${appState.surveyConfig.tasksPerRespondent}`;
+
+    document.getElementById('displayQuestion').textContent = replaceQuestionPlaceholders(appState.surveyConfig.questionText);
+    document.getElementById('headerMost').textContent = appState.surveyConfig.mostLabel;
+    document.getElementById('headerLeast').textContent = appState.surveyConfig.leastLabel;
+
+    const optionsGrid = document.getElementById('optionsGrid');
+    optionsGrid.innerHTML = '';
+    
+    task.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'maxdiff-row';
+        row.innerHTML = `
+            <div class="checkbox-container">
+                <input type="checkbox" class="maxdiff-checkbox most" data-type="most" data-index="${index}">
+            </div>
+            <div class="maxdiff-message">${item.message}</div>
+            <div class="checkbox-container">
+                <input type="checkbox" class="maxdiff-checkbox least" data-type="least" data-index="${index}">
+            </div>
+        `;
+        optionsGrid.appendChild(row);
+    });
+
+    document.querySelectorAll('.maxdiff-checkbox').forEach(cb => {
+        cb.addEventListener('change', handleCheckboxChange);
+    });
+
+    document.getElementById('prevTask').disabled = appState.currentTask === 0;
+    updateNextButton();
+}
+
+function handleCheckboxChange(e) {
+    const type = e.target.dataset.type;
+    if (e.target.checked) {
+        document.querySelectorAll(`input[data-type="${type}"]`).forEach(cb => {
+            if (cb !== e.target) cb.checked = false;
+        });
+    }
+    updateNextButton();
+}
+
+function updateNextButton() {
+    const most = document.querySelector('input[data-type="most"]:checked');
+    const least = document.querySelector('input[data-type="least"]:checked');
+    const btn = document.getElementById('nextTask');
+
+    if (most && least) {
+        btn.disabled = false;
+        btn.textContent = appState.currentTask === appState.surveyConfig.tasksPerRespondent - 1 
+            ? 'Next →' : 'Next Task →';
+    } else {
+        btn.disabled = true;
+        btn.textContent = 'Select Both Options';
+    }
+}
+
+function previousTask() {
+    if (appState.currentTask > 0) {
+        appState.currentTask--;
+        renderTask();
+    }
+}
+
+function nextTask() {
+    const most = document.querySelector('input[data-type="most"]:checked');
+    const least = document.querySelector('input[data-type="least"]:checked');
+    const task = appState.taskSets[appState.currentTask];
+
+    appState.currentResponses[appState.currentTask] = {
+        taskNumber: appState.currentTask + 1,
+        most: task[parseInt(most.dataset.index)],
+        least: task[parseInt(least.dataset.index)],
+        items: task
+    };
+
+    if (appState.currentTask < appState.surveyConfig.tasksPerRespondent - 1) {
+        appState.currentTask++;
+        updateOverallProgress();
+        renderTask();
+    } else {
+        // All MaxDiff tasks complete - show transition screen
+        showTransitionScreen();
+    }
+}
+
+function showTransitionScreen() {
+    document.getElementById('maxdiffSection').classList.add('hidden');
+    document.getElementById('transitionScreen').classList.remove('hidden');
+    
+    // Prepare conjoint section while user reads transition screen
+    startConjointSection();
+    
+    updateOverallProgress();
+}
+
+function generateStudyConjointDesign() {
+    const sampleSize = appState.surveyConfig.sampleSize || appState.studyDesign.sampleSize || 50;
+    const comparisonsPerRespondent = appState.surveyConfig.conjointComparisons;
+    
+    console.log(`🔬 Generating conjoint design for ${sampleSize} respondents...`);
+    
+    appState.studyDesign.conjointDesigns = generateStudyWideConjoint(
+        appState.top3ByAttribute,
+        sampleSize,
+        comparisonsPerRespondent
+    );
+    
+    console.log('✅ Conjoint design generated');
+    console.log(`   ${appState.studyDesign.conjointDesigns.length} unique respondent designs`);
+}
+
+function assignConjointDesign() {
+    if (appState.studyDesign.conjointDesigns && appState.studyDesign.conjointDesigns.length > 0) {
+        const respondentIndex = (appState.nextRespondentIndex - 1) % appState.studyDesign.conjointDesigns.length;
+        appState.conjointPairs = appState.studyDesign.conjointDesigns[respondentIndex];
+        console.log(`Assigned Conjoint design #${respondentIndex + 1} to respondent`);
+    } else {
+        // Fallback to old random method
+        generateConjointPairs();
+    }
+}
+
+function startConjointSection() {
+    calculateTop3Messages();
+    
+    // Generate study-wide conjoint design if not already done
+    if (!appState.studyDesign.conjointDesigns || appState.studyDesign.conjointDesigns.length === 0) {
+        generateStudyConjointDesign();
+    }
+    
+    // Assign conjoint design to this respondent
+    assignConjointDesign();
+    appState.currentConjointTask = 0;
+    appState.currentConjointResponses = [];
+    
+    // This function is now called from the transition screen continue button
+    // via showConjointSection()
+}
+
+function calculateTop3Messages() {
+    console.log('📊 Calculating hierarchical message utilities...');
+    
+    // Step 1: Calculate raw scores for ALL messages from ALL MaxDiff responses
+    const scores = {};
+    
+    appState.messages.forEach(msg => {
+        scores[msg.msgNumber] = { 
+            message: msg, 
+            mostCount: 0, 
+            leastCount: 0, 
+            score: 0,
+            utility: 0
+        };
+    });
+
+    // Aggregate counts from this respondent's MaxDiff responses
+    appState.currentResponses.forEach(response => {
+        if (scores[response.most.msgNumber]) {
+            scores[response.most.msgNumber].mostCount++;
+        }
+        if (scores[response.least.msgNumber]) {
+            scores[response.least.msgNumber].leastCount++;
+        }
+    });
+
+    // Calculate hierarchical utilities (most - least = utility score)
+    Object.values(scores).forEach(item => {
+        item.score = item.mostCount - item.leastCount;
+        item.utility = item.score; // Utility is the hierarchical value
+    });
+
+    // Log the full hierarchy
+    const rankedMessages = Object.values(scores)
+        .sort((a, b) => b.utility - a.utility);
+    
+    console.log('📋 Full Message Hierarchy (Top 10):');
+    rankedMessages.slice(0, 10).forEach((item, idx) => {
+        console.log(`   ${idx + 1}. [${item.message.attribute}] Msg ${item.message.msgNumber}: ${item.utility} (Most:${item.mostCount}, Least:${item.leastCount})`);
+    });
+
+    // Step 2: Derive top 3 messages per attribute from the hierarchy
+    appState.top3ByAttribute = {};
+    appState.attributes.forEach(attribute => {
+        const attrMessages = Object.values(scores)
+            .filter(item => item.message.attribute === attribute)
+            .sort((a, b) => b.utility - a.utility)
+            .slice(0, 3)
+            .map(item => item.message);
+        
+        appState.top3ByAttribute[attribute] = attrMessages;
+        
+        console.log(`   Top 3 for ${attribute}:`, attrMessages.map(m => `Msg${m.msgNumber}`).join(', '));
+    });
+    
+    console.log('✅ Top 3 per attribute calculated from hierarchy');
+}
+
+function generateConjointPairs() {
+    console.log('🎯 Generating conjoint pairs with unique combinations...');
+    appState.conjointPairs = [];
+    
+    const usedCombinations = new Set();
+    
+    for (let i = 0; i < appState.surveyConfig.conjointComparisons; i++) {
+        let card1, card2;
+        let attempts = 0;
+        const maxAttempts = 100;
+        
+        // Generate Card 1
+        do {
+            card1 = {};
+            appState.attributes.forEach(attr => {
+                const top3 = appState.top3ByAttribute[attr];
+                if (top3 && top3.length > 0) {
+                    card1[attr] = {...top3[Math.floor(Math.random() * top3.length)]};
+                }
+            });
+            attempts++;
+        } while (usedCombinations.has(JSON.stringify(card1)) && attempts < maxAttempts);
+        
+        usedCombinations.add(JSON.stringify(card1));
+        
+        // Generate Card 2 - MUST be different from Card 1
+        attempts = 0;
+        do {
+            card2 = {};
+            let isDifferent = false;
+            
+            appState.attributes.forEach(attr => {
+                const top3 = appState.top3ByAttribute[attr];
+                if (top3 && top3.length > 0) {
+                    // Pick a random message from top 3
+                    const selectedMsg = top3[Math.floor(Math.random() * top3.length)];
+                    card2[attr] = {...selectedMsg};
+                    
+                    // Check if at least one message is different from card1
+                    if (card1[attr].msgNumber !== selectedMsg.msgNumber) {
+                        isDifferent = true;
+                    }
+                }
+            });
+            
+            attempts++;
+            
+            // Card 2 must be different AND not already used
+            const card2Key = JSON.stringify(card2);
+            if (isDifferent && !usedCombinations.has(card2Key)) {
+                usedCombinations.add(card2Key);
+                break;
+            }
+            
+        } while (attempts < maxAttempts);
+        
+        // CRITICAL: Validate before adding - cards must differ in at least HALF the attributes
+        const minDifferences = Math.ceil(appState.attributes.length / 2);
+        let differences = 0;
+        
+        for (let attr of appState.attributes) {
+            if (card1[attr] && card2[attr] && card1[attr].msgNumber !== card2[attr].msgNumber) {
+                differences++;
+            }
+        }
+        
+        const sufficientlyDifferent = differences >= minDifferences;
+        
+        if (!sufficientlyDifferent) {
+            console.error(`❌ CRITICAL: Cards only differ in ${differences} attributes (need ${minDifferences}). Skipping pair ${i + 1}.`);
+            continue; // Skip this pair - not different enough
+        }
+        
+        if (attempts >= maxAttempts) {
+            console.warn(`⚠️ Took ${maxAttempts} attempts to generate pair ${i + 1}`);
+        }
+        
+        appState.conjointPairs.push({ card1, card2 });
+        
+        console.log(`   Pair ${i + 1}:`, {
+            card1: Object.values(card1).map(m => `Msg${m.msgNumber}`).join(','),
+            card2: Object.values(card2).map(m => `Msg${m.msgNumber}`).join(','),
+            differences: differences
+        });
+    }
+    
+    console.log(`✅ Generated ${appState.conjointPairs.length} unique conjoint pairs`);
+}
+
+function renderConjointTask() {
+    const pair = appState.conjointPairs[appState.currentConjointTask];
+    
+    // DEBUGGING: Log what we're rendering
+    console.log(`🎯 Rendering Comparison ${appState.currentConjointTask + 1}:`);
+    console.log(`   Card A:`, Object.keys(pair.card1).map(attr => `${attr}:Msg${pair.card1[attr].msgNumber}`).join(', '));
+    console.log(`   Card B:`, Object.keys(pair.card2).map(attr => `${attr}:Msg${pair.card2[attr].msgNumber}`).join(', '));
+    
+    // Count how many attributes differ
+    let differences = 0;
+    for (let attr in pair.card1) {
+        if (pair.card1[attr].msgNumber !== pair.card2[attr].msgNumber) {
+            differences++;
+        }
+    }
+    
+    const totalAttributes = Object.keys(pair.card1).length;
+    const minRequired = Math.ceil(totalAttributes / 2);
+    
+    console.log(`   📊 Differences: ${differences}/${totalAttributes} attributes differ (min required: ${minRequired})`);
+    
+    if (differences === 0) {
+        console.error(`❌❌❌ CRITICAL BUG: Cards are IDENTICAL in comparison ${appState.currentConjointTask + 1}!`);
+    } else if (differences < minRequired) {
+        console.warn(`⚠️ Warning: Only ${differences} differences (need ${minRequired}) in comparison ${appState.currentConjointTask + 1}`);
+    }
+    
+    // Fix progress to show current task correctly (1-indexed)
+    const currentTaskNum = appState.currentConjointTask + 1;
+    const progress = (currentTaskNum / appState.surveyConfig.conjointComparisons) * 100;
+    document.getElementById('conjointProgressFill').style.width = progress + '%';
+    document.getElementById('conjointProgressText').textContent = 
+        `Comparison ${currentTaskNum} of ${appState.surveyConfig.conjointComparisons}`;
+
+    const container = document.getElementById('cardsContainer');
+    container.innerHTML = '';
+
+    // Get product name from config
+    const productName = appState.surveyConfig.productName || 'Product';
+
+    // Card A - with custom product branding
+    const card1 = document.createElement('div');
+    card1.className = 'message-story';
+    card1.dataset.card = '1';
+    let html1 = `
+        <div class="card-number-badge">Option A</div>
+        <div class="card-header">
+            <div class="story-label" style="color: #2563eb; font-size: 1.5rem; font-weight: 700;">${productName}</div>
+            <div class="select-indicator"></div>
+        </div>`;
+    
+    appState.attributes.forEach(attr => {
+        const msg = pair.card1[attr];
+        if (msg) {
+            html1 += `<div class="card-message-item">
+                <div class="card-attribute">${attr}</div>
+                <div class="card-message-text">${msg.message}</div>
+            </div>`;
+        }
+    });
+    card1.innerHTML = html1;
+
+    // Card B - with custom product branding
+    const card2 = document.createElement('div');
+    card2.className = 'message-story';
+    card2.dataset.card = '2';
+    let html2 = `
+        <div class="card-number-badge">Option B</div>
+        <div class="card-header">
+            <div class="story-label" style="color: #2563eb; font-size: 1.5rem; font-weight: 700;">${productName}</div>
+            <div class="select-indicator"></div>
+        </div>`;
+    
+    appState.attributes.forEach(attr => {
+        const msg = pair.card2[attr];
+        if (msg) {
+            html2 += `<div class="card-message-item">
+                <div class="card-attribute">${attr}</div>
+                <div class="card-message-text">${msg.message}</div>
+            </div>`;
+        }
+    });
+    card2.innerHTML = html2;
+
+    container.appendChild(card1);
+    container.appendChild(card2);
+
+    document.querySelectorAll('.message-story').forEach(card => {
+        card.addEventListener('click', function() {
+            document.querySelectorAll('.message-story').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            updateConjointNextButton();
+        });
+    });
+
+    document.getElementById('prevConjoint').disabled = appState.currentConjointTask === 0;
+    updateConjointNextButton();
+    
+    // Smooth scroll to top of conjoint section so user sees cards from top
+    document.getElementById('conjointSection').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+}
+
+function updateConjointNextButton() {
+    const selected = document.querySelector('.message-story.selected');
+    const btn = document.getElementById('nextConjoint');
+
+    if (selected) {
+        btn.disabled = false;
+        btn.textContent = appState.currentConjointTask === appState.surveyConfig.conjointComparisons - 1 
+            ? 'Complete Survey' : 'Next Comparison →';
+    } else {
+        btn.disabled = true;
+        btn.textContent = 'Select a Story';
+    }
+}
+
+function previousConjoint() {
+    if (appState.currentConjointTask > 0) {
+        appState.currentConjointTask--;
+        renderConjointTask();
+    }
+}
+
+function nextConjoint() {
+    const selected = document.querySelector('.message-story.selected');
+    const pair = appState.conjointPairs[appState.currentConjointTask];
+
+    appState.currentConjointResponses[appState.currentConjointTask] = {
+        comparisonNumber: appState.currentConjointTask + 1,
+        selectedCard: selected.dataset.card,
+        card1: pair.card1,
+        card2: pair.card2
+    };
+
+    if (appState.currentConjointTask < appState.surveyConfig.conjointComparisons - 1) {
+        appState.currentConjointTask++;
+        updateOverallProgress();
+        renderConjointTask();
+    } else {
+        completeSurvey();
+    }
+}
+
+function completeSurvey() {
+    appState.currentRespondent.maxdiffResponses = appState.currentResponses;
+    appState.currentRespondent.conjointResponses = appState.currentConjointResponses;
+    appState.currentRespondent.completedTime = new Date().toISOString();
+    
+    appState.responses.push(appState.currentRespondent);
+    saveToLocalStorage();
+
+    document.getElementById('conjointSection').classList.add('hidden');
+    document.getElementById('surveyComplete').classList.remove('hidden');
+    document.getElementById('completionId').textContent = appState.currentRespondent.id;
+    
+    // Hide overall progress bar - survey complete
+    hideOverallProgress();
+}
+
+function displayResults() {
+    if (appState.responses.length === 0) {
+        document.getElementById('noResults').classList.remove('hidden');
+        document.getElementById('hasResults').classList.add('hidden');
+        return;
+    }
+
+    document.getElementById('noResults').classList.add('hidden');
+    document.getElementById('hasResults').classList.remove('hidden');
+
+    // Render all sections
+    displaySummaryStats();
+    displayMaxDiffAnalysis();
+    displayConjointAnalysis();
+    displayAttributeImportance();
+    setupFilterListeners();
+    
+    // Attach export button listeners (now that elements exist)
+    setupExportListeners();
+}
+
+function setupExportListeners() {
+    const exportMaxdiffBtn = document.getElementById('exportMaxdiffCSV');
+    const exportConjointBtn = document.getElementById('exportConjointCSV');
+    
+    if (exportMaxdiffBtn) {
+        exportMaxdiffBtn.onclick = exportMaxdiffCSV;
+    }
+    if (exportConjointBtn) {
+        exportConjointBtn.onclick = exportConjointCSV;
+    }
+}
+
+// ============================================================================
+// SUMMARY STATISTICS
+// ============================================================================
+
+function displaySummaryStats() {
+    const total = appState.responses.length;
+    const durations = appState.responses
+        .filter(r => r.startTime && r.completedTime)
+        .map(r => {
+            const start = new Date(r.startTime);
+            const end = new Date(r.completedTime);
+            return (end - start) / 60000; // minutes
+        });
+    
+    const avgDuration = durations.length > 0 
+        ? (durations.reduce((a,b) => a+b, 0) / durations.length).toFixed(1)
+        : 0;
+    
+    document.getElementById('totalResponses').textContent = total;
+    document.getElementById('completionRate').textContent = '100%';
+    document.getElementById('avgDuration').textContent = `${avgDuration}m`;
+    document.getElementById('productName').textContent = appState.surveyConfig.productName || '-';
+}
+
+// ============================================================================
+// MAXDIFF ANALYSIS
+// ============================================================================
+
+function displayMaxDiffAnalysis() {
+    const scores = calculateMaxDiffScores();
+    populateAttributeFilter(scores);
+    renderMaxDiffTable(scores, 'all');
+}
+
+function calculateMaxDiffScores() {
+    const scores = {};
+    
+    // Initialize scores for all messages
+    appState.messages.forEach(msg => {
+        scores[msg.msgNumber] = {
+            message: msg,
+            mostCount: 0,
+            leastCount: 0,
+            netScore: 0,
+            timesShown: 0,
+            mostPercent: 0,
+            leastPercent: 0
+        };
+    });
+    
+    // Count selections across all respondents
+    appState.responses.forEach(resp => {
+        resp.maxdiffResponses.forEach(response => {
+            if (scores[response.most.msgNumber]) {
+                scores[response.most.msgNumber].mostCount++;
+                scores[response.most.msgNumber].timesShown++;
+            }
+            if (scores[response.least.msgNumber]) {
+                scores[response.least.msgNumber].leastCount++;
+                scores[response.least.msgNumber].timesShown++;
+            }
+            
+            // Count times shown for all items in task
+            response.items.forEach(item => {
+                if (scores[item.msgNumber]) {
+                    scores[item.msgNumber].timesShown++;
+                }
+            });
+        });
+    });
+    
+    // Calculate net scores and percentages
+    Object.values(scores).forEach(item => {
+        item.netScore = item.mostCount - item.leastCount;
+        item.mostPercent = item.timesShown > 0 ? (item.mostCount / item.timesShown * 100).toFixed(1) : 0;
+        item.leastPercent = item.timesShown > 0 ? (item.leastCount / item.timesShown * 100).toFixed(1) : 0;
+    });
+    
+    return scores;
+}
+
+function populateAttributeFilter(scores) {
+    const select = document.getElementById('filterAttributeMaxdiff');
+    select.innerHTML = '<option value="all">All Attributes</option>';
+    
+    appState.attributes.forEach(attr => {
+        const option = document.createElement('option');
+        option.value = attr;
+        option.textContent = attr;
+        select.appendChild(option);
+    });
+}
+
+function renderMaxDiffTable(scores, filterAttr = 'all') {
+    const container = document.getElementById('maxdiffResultsTable');
+    
+    // Filter and sort messages
+    let messages = Object.values(scores);
+    if (filterAttr !== 'all') {
+        messages = messages.filter(item => item.message.attribute === filterAttr);
+    }
+    messages.sort((a, b) => b.netScore - a.netScore);
+    
+    // Create table
+    let html = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f3f4f6; border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 0.75rem; text-align: left;">Rank</th>
+                    <th style="padding: 0.75rem; text-align: left;">Attribute</th>
+                    <th style="padding: 0.75rem; text-align: left;">Message</th>
+                    <th style="padding: 0.75rem; text-align: center;">Most Selected</th>
+                    <th style="padding: 0.75rem; text-align: center;">Least Selected</th>
+                    <th style="padding: 0.75rem; text-align: center;">Net Score</th>
+                    <th style="padding: 0.75rem; text-align: center;">Times Shown</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    messages.forEach((item, index) => {
+        const rankColor = index === 0 ? '#10b981' : index === 1 ? '#3b82f6' : index === 2 ? '#8b5cf6' : '#6b7280';
+        html += `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem; font-weight: 700; color: ${rankColor};">${index + 1}</td>
+                <td style="padding: 0.75rem;"><span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">${item.message.attribute}</span></td>
+                <td style="padding: 0.75rem; max-width: 400px;">${item.message.message}</td>
+                <td style="padding: 0.75rem; text-align: center;"><strong>${item.mostCount}</strong> (${item.mostPercent}%)</td>
+                <td style="padding: 0.75rem; text-align: center;"><strong>${item.leastCount}</strong> (${item.leastPercent}%)</td>
+                <td style="padding: 0.75rem; text-align: center;"><strong style="color: ${item.netScore >= 0 ? '#10b981' : '#ef4444'};">${item.netScore > 0 ? '+' : ''}${item.netScore}</strong></td>
+                <td style="padding: 0.75rem; text-align: center;">${item.timesShown}</td>
+            </tr>
+        `;
+    });
+    
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+}
+
+// ============================================================================
+// CONJOINT ANALYSIS
+// ============================================================================
+
+function displayConjointAnalysis() {
+    const analysis = calculateConjointAnalysis();
+    
+    // Overall winning combination
+    renderOverallWinningCombo(analysis.overallWinner);
+    
+    // Preference share table
+    renderPreferenceShareTable(analysis.combinations);
+    
+    // Individual respondent choices
+    renderRespondentChoices(analysis.respondentChoices);
+}
+
+function calculateConjointAnalysis() {
+    const combinations = {};
+    const respondentChoices = [];
+    
+    // Aggregate all conjoint responses
+    appState.responses.forEach(resp => {
+        const respChoices = {
+            respondentId: resp.id,
+            respondentName: resp.name,
+            choices: []
+        };
+        
+        resp.conjointResponses.forEach(response => {
+            const selectedCard = response.selectedCard === '1' ? response.card1 : response.card2;
+            const comboKey = createComboKey(selectedCard);
+            
+            // Track overall combinations
+            if (!combinations[comboKey]) {
+                combinations[comboKey] = {
+                    card: selectedCard,
+                    count: 0,
+                    respondents: new Set()
+                };
+            }
+            combinations[comboKey].count++;
+            combinations[comboKey].respondents.add(resp.id);
+            
+            // Track individual choice
+            respChoices.choices.push({
+                comparison: response.comparisonNumber,
+                selected: selectedCard
+            });
+        });
+        
+        respondentChoices.push(respChoices);
+    });
+    
+    // Calculate preference shares
+    const totalSelections = Object.values(combinations).reduce((sum, c) => sum + c.count, 0);
+    Object.values(combinations).forEach(combo => {
+        combo.preferenceShare = (combo.count / totalSelections * 100).toFixed(1);
+    });
+    
+    // Find overall winner
+    const sortedCombos = Object.values(combinations).sort((a, b) => b.count - a.count);
+    const overallWinner = sortedCombos[0];
+    
+    return {
+        combinations: Object.values(combinations).sort((a, b) => b.count - a.count),
+        overallWinner,
+        respondentChoices
+    };
+}
+
+function createComboKey(card) {
+    return appState.attributes.map(attr => 
+        card[attr] ? `${attr}:${card[attr].msgNumber}` : ''
+    ).join('|');
+}
+
+function renderOverallWinningCombo(winner) {
+    const container = document.getElementById('overallWinningCombo');
+    
+    if (!winner) {
+        container.innerHTML = '<p style="color: #6b7280;">No conjoint data yet</p>';
+        return;
+    }
+    
+    let html = `
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">WINNING COMBINATION</div>
+            <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">
+                Selected ${winner.count} times (${winner.preferenceShare}% preference share)
+            </div>
+            <div style="font-size: 0.875rem; opacity: 0.9;">
+                By ${winner.respondents.size} unique respondent(s)
+            </div>
+        </div>
+        
+        <div style="margin-top: 1.5rem; display: grid; gap: 1rem;">
+    `;
+    
+    appState.attributes.forEach(attr => {
+        if (winner.card[attr]) {
+            html += `
+                <div style="background: #f9fafb; border-left: 4px solid #2563eb; padding: 1rem; border-radius: 4px;">
+                    <div style="font-weight: 700; color: #2563eb; margin-bottom: 0.5rem;">${attr}</div>
+                    <div style="color: #374151;">${winner.card[attr].message}</div>
+                </div>
+            `;
+        }
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function renderPreferenceShareTable(combinations) {
+    const container = document.getElementById('conjointPreferenceTable');
+    
+    let html = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f3f4f6; border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 0.75rem; text-align: left;">Rank</th>
+                    <th style="padding: 0.75rem; text-align: left;">Message Combination</th>
+                    <th style="padding: 0.75rem; text-align: center;">Times Selected</th>
+                    <th style="padding: 0.75rem; text-align: center;">Preference Share</th>
+                    <th style="padding: 0.75rem; text-align: center;"># Respondents</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    combinations.slice(0, 10).forEach((combo, index) => {
+        const comboText = appState.attributes
+            .map(attr => combo.card[attr] ? `${attr}: Msg${combo.card[attr].msgNumber}` : '')
+            .filter(Boolean)
+            .join(', ');
+        
+        html += `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem; font-weight: 700; color: ${index === 0 ? '#10b981' : '#6b7280'};">${index + 1}</td>
+                <td style="padding: 0.75rem;">${comboText}</td>
+                <td style="padding: 0.75rem; text-align: center;"><strong>${combo.count}</strong></td>
+                <td style="padding: 0.75rem; text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <div style="background: #dbeafe; height: 8px; width: ${combo.preferenceShare}px; max-width: 100px; border-radius: 4px;"></div>
+                        <strong>${combo.preferenceShare}%</strong>
+                    </div>
+                </td>
+                <td style="padding: 0.75rem; text-align: center;">${combo.respondents.size}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    
+    if (combinations.length > 10) {
+        html += `<p style="margin-top: 1rem; color: #6b7280; font-size: 0.875rem;">Showing top 10 of ${combinations.length} unique combinations</p>`;
+    }
+    
+    container.innerHTML = html;
+}
+
+function renderRespondentChoices(respondentChoices) {
+    const container = document.getElementById('respondentConjointTable');
+    
+    let html = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f3f4f6; border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 0.75rem; text-align: left;">Respondent</th>
+                    <th style="padding: 0.75rem; text-align: left;">Their Winning Combination</th>
+                    <th style="padding: 0.75rem; text-align: center;">Total Comparisons</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    respondentChoices.forEach(resp => {
+        // Find their most selected combination
+        const comboCounts = {};
+        resp.choices.forEach(choice => {
+            const key = createComboKey(choice.selected);
+            comboCounts[key] = (comboCounts[key] || { card: choice.selected, count: 0 });
+            comboCounts[key].count++;
+        });
+        
+        const mostSelected = Object.values(comboCounts).sort((a, b) => b.count - a.count)[0];
+        const comboText = appState.attributes
+            .map(attr => mostSelected.card[attr] ? `${attr}: Msg${mostSelected.card[attr].msgNumber}` : '')
+            .filter(Boolean)
+            .join(', ');
+        
+        html += `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem;"><strong>${resp.respondentName}</strong></td>
+                <td style="padding: 0.75rem;">${comboText} <span style="color: #6b7280;">(${mostSelected.count}x)</span></td>
+                <td style="padding: 0.75rem; text-align: center;">${resp.choices.length}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// ============================================================================
+// ATTRIBUTE IMPORTANCE
+// ============================================================================
+
+function displayAttributeImportance() {
+    const importance = calculateAttributeImportance();
+    renderAttributeImportanceChart(importance);
+}
+
+function calculateAttributeImportance() {
+    // Count how often each attribute's message varies in winning selections
+    const attributeVariance = {};
+    appState.attributes.forEach(attr => {
+        attributeVariance[attr] = { switches: 0, total: 0 };
+    });
+    
+    appState.responses.forEach(resp => {
+        const selections = resp.conjointResponses.map(r => 
+            r.selectedCard === '1' ? r.card1 : r.card2
+        );
+        
+        // Count switches per attribute
+        for (let i = 1; i < selections.length; i++) {
+            appState.attributes.forEach(attr => {
+                if (selections[i][attr] && selections[i-1][attr]) {
+                    attributeVariance[attr].total++;
+                    if (selections[i][attr].msgNumber !== selections[i-1][attr].msgNumber) {
+                        attributeVariance[attr].switches++;
+                    }
+                }
+            });
+        }
+    });
+    
+    // Calculate importance (higher variance = more important)
+    const importance = {};
+    let totalVariance = 0;
+    Object.keys(attributeVariance).forEach(attr => {
+        const variance = attributeVariance[attr].total > 0 
+            ? attributeVariance[attr].switches / attributeVariance[attr].total 
+            : 0;
+        importance[attr] = variance;
+        totalVariance += variance;
+    });
+    
+    // Normalize to percentages
+    Object.keys(importance).forEach(attr => {
+        importance[attr] = totalVariance > 0 
+            ? (importance[attr] / totalVariance * 100).toFixed(1) 
+            : (100 / appState.attributes.length).toFixed(1);
+    });
+    
+    return importance;
+}
+
+function renderAttributeImportanceChart(importance) {
+    const container = document.getElementById('attributeImportanceChart');
+    const sorted = Object.entries(importance).sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]));
+    
+    let html = '<div style="display: grid; gap: 1rem;">';
+    
+    sorted.forEach(([attr, score]) => {
+        html += `
+            <div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="font-weight: 600;">${attr}</span>
+                    <span style="color: #6b7280;">${score}%</span>
+                </div>
+                <div style="background: #e5e7eb; height: 24px; border-radius: 12px; overflow: hidden;">
+                    <div style="background: linear-gradient(90deg, #2563eb, #7c3aed); height: 100%; width: ${score}%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// ============================================================================
+// FILTER LISTENERS
+// ============================================================================
+
+function setupFilterListeners() {
+    document.getElementById('filterAttributeMaxdiff').addEventListener('change', function() {
+        const scores = calculateMaxDiffScores();
+        renderMaxDiffTable(scores, this.value);
+    });
+}
+
+function applyFilters() {
+    calculateAndDisplayResults(
+        document.getElementById('filterRespondent').value,
+        document.getElementById('filterAttribute').value
+    );
+}
+
+function exportResults() {
+    const data = JSON.stringify({
+        surveyConfig: appState.surveyConfig,
+        messages: appState.messages,
+        responses: appState.responses,
+        exportDate: new Date().toISOString()
+    }, null, 2);
+
+    const blob = new Blob([data], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `survey-results-${Date.now()}.json`;
+    link.click();
+}
+
+function exportCSV() {
+    let csv = 'Respondent,Email,Stage,Task,Data\n';
+    
+    appState.responses.forEach(r => {
+        r.maxdiffResponses.forEach(mr => {
+            csv += `"${r.name}","${r.email}","MaxDiff",${mr.taskNumber},"${mr.most.attribute} / ${mr.least.attribute}"\n`;
+        });
+        r.conjointResponses.forEach(cr => {
+            csv += `"${r.name}","${r.email}","Conjoint",${cr.comparisonNumber},"Card ${cr.selectedCard}"\n`;
+        });
+    });
+
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `survey-responses-${Date.now()}.csv`;
+    link.click();
+}
+
+function exportMaxdiffCSV() {
+    const scores = calculateMaxDiffScores();
+    const messages = Object.values(scores).sort((a, b) => b.netScore - a.netScore);
+    
+    let csv = 'Rank,Message Number,Attribute,Message Text,Most Selected,Least Selected,Net Score,Times Shown,Most %,Least %\n';
+    
+    messages.forEach((item, index) => {
+        csv += `${index + 1},${item.message.msgNumber},"${item.message.attribute}","${item.message.message.replace(/"/g, '""')}",${item.mostCount},${item.leastCount},${item.netScore},${item.timesShown},${item.mostPercent},${item.leastPercent}\n`;
+    });
+    
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `maxdiff-analysis-${Date.now()}.csv`;
+    link.click();
+    
+    console.log('✅ Exported MaxDiff analysis to CSV');
+}
+
+function exportConjointCSV() {
+    const analysis = calculateConjointAnalysis();
+    
+    let csv = 'Rank,Preference Share %,Times Selected,# Respondents,';
+    appState.attributes.forEach(attr => {
+        csv += `${attr} Message,`;
+    });
+    csv += '\n';
+    
+    analysis.combinations.forEach((combo, index) => {
+        csv += `${index + 1},${combo.preferenceShare},${combo.count},${combo.respondents.size},`;
+        appState.attributes.forEach(attr => {
+            if (combo.card[attr]) {
+                csv += `"${combo.card[attr].message.replace(/"/g, '""')}",`;
+            } else {
+                csv += ',';
+            }
+        });
+        csv += '\n';
+    });
+    
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `conjoint-analysis-${Date.now()}.csv`;
+    link.click();
+    
+    console.log('✅ Exported Conjoint analysis to CSV');
+}
+
+function updateUI() {
+    if (appState.surveyConfig.isActive) {
+        document.getElementById('surveyInactive').classList.add('hidden');
+        document.getElementById('surveyActive').classList.remove('hidden');
+        
+        // Show link generator and Google Sheets integration when survey is active
+        document.getElementById('linkGeneratorCard').style.display = 'block';
+        document.getElementById('googleSheetsCard').style.display = 'block';
+    } else {
+        document.getElementById('surveyInactive').classList.remove('hidden');
+        document.getElementById('surveyActive').classList.add('hidden');
+        
+        // Hide link generator and Google Sheets when survey is not active
+        document.getElementById('linkGeneratorCard').style.display = 'none';
+        document.getElementById('googleSheetsCard').style.display = 'none';
+    }
+    
+    // Update Google Sheets URL if saved
+    if (appState.googleSheetsConfig.webAppUrl) {
+        document.getElementById('googleSheetsUrl').value = appState.googleSheetsConfig.webAppUrl;
+    }
+}
+
+        function getDefaultWelcomeText() {
+            return `Thank you for participating in this market research study for Ozempic®.
+
+About Ozempic®:
+Ozempic® (semaglutide) is a once-weekly GLP-1 receptor agonist indicated for improving glycemic control in adults with type 2 diabetes, and to reduce the risk of major adverse cardiovascular events in adults with type 2 diabetes and established cardiovascular disease.
+
+Your Expertise Matters:
+Your experience in market research makes you uniquely qualified to predict what messaging would resonate with physicians. For this survey, please put yourself in the shoes of a prescribing physician and answer all questions as if you were making treatment decisions for your type 2 diabetes patients.
+
+This survey has two parts:
+1. Message Ranking (5-10 minutes)
+2. Story Comparison (5-10 minutes)
+
+Your responses are confidential and will be used solely for market research purposes.`;
+        }
+    
+
+function saveToLocalStorage() {
+    try {
+        localStorage.setItem('maxdiffConjoint', JSON.stringify(appState));
+    } catch (e) {
+        console.error('Save failed:', e);
+    }
+}
+
+function loadFromLocalStorage() {
+    try {
+        const saved = localStorage.getItem('maxdiffConjoint');
+        if (saved) {
+            const loadedState = JSON.parse(saved);
+            
+            // Merge loaded state with default structure to ensure all properties exist
+            appState = {
+                ...appState,
+                ...loadedState,
+                // Ensure studyDesign exists
+                studyDesign: {
+                    maxdiffDesigns: [],
+                    conjointDesigns: [],
+                    sampleSize: 0,
+                    ...(loadedState.studyDesign || {})
+                },
+                // Ensure nextRespondentIndex exists
+                nextRespondentIndex: loadedState.nextRespondentIndex || 0
+            };
+            
+            console.log('✅ Loaded from localStorage:', {
+                messages: appState.messages?.length || 0,
+                responses: appState.responses?.length || 0,
+                isActive: appState.surveyConfig?.isActive || false,
+                hasDesigns: appState.studyDesign?.maxdiffDesigns?.length || 0
+            });
+        }
+    } catch (e) {
+        console.error('Load failed:', e);
+    }
+}
+
+// ============================================
+// OVERALL PROGRESS TRACKING
+// ============================================
+
+function updateOverallProgress() {
+    if (!appState.currentRespondent) return;
+    
+    const maxdiffTotal = appState.surveyConfig.tasksPerRespondent;
+    const conjointTotal = appState.surveyConfig.conjointComparisons;
+    const grandTotal = maxdiffTotal + conjointTotal;
+    
+    // Count COMPLETED tasks (not current index)
+    // currentTask is 0-indexed, so if currentTask=1, we've completed 1 task
+    // But we increment AFTER completing, so currentTask shows next task to do
+    const maxdiffCompleted = appState.currentTask; // This is correct - tasks completed so far
+    const conjointCompleted = appState.currentConjointTask; // Conjoint tasks completed
+    const totalCompleted = maxdiffCompleted + conjointCompleted;
+    
+    const percentage = Math.round((totalCompleted / grandTotal) * 100);
+    
+    document.getElementById('overallProgressFill').style.width = percentage + '%';
+    document.getElementById('overallProgressPercentage').textContent = percentage + '%';
+    
+    console.log(`📊 Overall progress: ${totalCompleted}/${grandTotal} (${percentage}%) [MaxDiff: ${maxdiffCompleted}/${maxdiffTotal}, Conjoint: ${conjointCompleted}/${conjointTotal}]`);
+}
+
+function showOverallProgress() {
+    document.getElementById('overallProgressBar').classList.add('active');
+    document.body.classList.add('survey-active');
+    updateOverallProgress();
+}
+
+function hideOverallProgress() {
+    document.getElementById('overallProgressBar').classList.remove('active');
+    document.body.classList.remove('survey-active');
+}
+
+function showConjointSection() {
+    document.getElementById('transitionScreen').classList.add('hidden');
+    document.getElementById('conjointSection').classList.remove('hidden');
+    
+    // Display conjoint question
+    const conjointQuestion = replaceQuestionPlaceholders(
+        appState.surveyConfig.conjointQuestionText || 
+        'Which story most motivates you to prescribe [PRODUCT] to your [DISEASE] patients?'
+    );
+    document.getElementById('conjointQuestionDisplay').textContent = conjointQuestion;
+    
+    // Render first conjoint task
+    renderConjointTask();
+    
+    updateOverallProgress();
+}
+
+// ============================================================================
+// LINK GENERATOR FUNCTIONS
+// ============================================================================
+
+function generateSurveyLinks() {
+    const numLinks = parseInt(document.getElementById('numLinks').value);
+    const baseUrl = document.getElementById('baseUrl').value.trim();
+    
+    if (!baseUrl) {
+        alert('Please enter your survey URL first');
+        return;
+    }
+    
+    if (numLinks < 1 || numLinks > 500) {
+        alert('Please enter a number between 1 and 500');
+        return;
+    }
+    
+    const links = [];
+    const timestamp = Date.now();
+    
+    for (let i = 1; i <= numLinks; i++) {
+        const respondentId = `R${timestamp}_${String(i).padStart(4, '0')}`;
+        const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}id=${respondentId}`;
+        links.push({ id: respondentId, url: url });
+    }
+    
+    // Store links
+    appState.generatedLinks = links;
+    
+    // Display links
+    const linksText = links.map(l => l.url).join('\n');
+    document.getElementById('linksTextarea').value = linksText;
+    document.getElementById('linksOutput').style.display = 'block';
+    document.getElementById('linkCount').textContent = links.length;
+    document.getElementById('downloadLinks').style.display = 'inline-block';
+    document.getElementById('copyAllLinks').style.display = 'inline-block';
+    
+    console.log(`✅ Generated ${links.length} unique survey links`);
+}
+
+function downloadLinksCSV() {
+    if (!appState.generatedLinks || appState.generatedLinks.length === 0) {
+        alert('Please generate links first');
+        return;
+    }
+    
+    // Create CSV content
+    let csv = 'Respondent ID,Survey URL\n';
+    appState.generatedLinks.forEach(link => {
+        csv += `${link.id},"${link.url}"\n`;
+    });
+    
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `survey-links-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    console.log('✅ Downloaded links CSV');
+}
+
+function copyAllLinks() {
+    const textarea = document.getElementById('linksTextarea');
+    textarea.select();
+    document.execCommand('copy');
+    
+    const btn = document.getElementById('copyAllLinks');
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => {
+        btn.textContent = originalText;
+    }, 2000);
+}
+
+// ============================================================================
+// GOOGLE SHEETS INTEGRATION FUNCTIONS
+// ============================================================================
+
+function saveGoogleSheetsConfig() {
+    const url = document.getElementById('googleSheetsUrl').value.trim();
+    
+    if (!url) {
+        alert('Please enter your Google Apps Script URL');
+        return;
+    }
+    
+    if (!url.includes('script.google.com')) {
+        alert('Please enter a valid Google Apps Script URL');
+        return;
+    }
+    
+    appState.googleSheetsConfig.webAppUrl = url;
+    appState.googleSheetsConfig.enabled = true;
+    
+    saveToLocalStorage();
+    
+    document.getElementById('connectionStatus').innerHTML = 
+        '<div class="alert alert-success">✓ Configuration saved! Responses will now sync to Google Sheets.</div>';
+    
+    console.log('✅ Google Sheets integration configured');
+}
+
+async function testGoogleSheetsConnection() {
+    const url = document.getElementById('googleSheetsUrl').value.trim();
+    
+    if (!url) {
+        alert('Please enter your Google Apps Script URL first');
+        return;
+    }
+    
+    const statusDiv = document.getElementById('connectionStatus');
+    statusDiv.innerHTML = '<div class="alert alert-info">Testing connection...</div>';
+    
+    try {
+        const testData = {
+            type: 'test',
+            timestamp: new Date().toISOString(),
+            message: 'Connection test from Message Testing Platform'
+        };
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        // no-cors mode doesn't give us response, so we assume success
+        statusDiv.innerHTML = '<div class="alert alert-success">✓ Connection successful! (Note: no-cors mode prevents detailed response)</div>';
+        console.log('✅ Test request sent to Google Sheets');
+        
+    } catch (error) {
+        statusDiv.innerHTML = `<div class="alert alert-warning">⚠️ Request sent but cannot verify: ${error.message}</div>`;
+        console.error('Connection test error:', error);
+    }
+}
+
+async function sendToGoogleSheets(responseData) {
+    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
+        console.log('Google Sheets not configured, skipping sync');
+        return;
+    }
+    
+    try {
+        console.log('📤 Sending data to Google Sheets...');
+        
+        const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(responseData)
+        });
+        
+        console.log('✅ Data sent to Google Sheets');
+        
+    } catch (error) {
+        console.error('❌ Failed to send to Google Sheets:', error);
+    }
+}
+
+function downloadGoogleSheetsGuide() {
+    const script = `// Google Apps Script for Message Testing Platform
+// Copy this entire code into your Google Apps Script editor
+
+function doPost(e) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // Parse incoming data
+    const data = JSON.parse(e.postData.contents);
+    
+    // Handle test requests
+    if (data.type === 'test') {
+      Logger.log('Test connection received');
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'Connection successful'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Handle survey responses
+    if (data.type === 'survey_response') {
+      // Check if headers exist, if not create them
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow([
+          'Timestamp',
+          'Respondent ID',
+          'Name',
+          'Role',
+          'Start Time',
+          'Completed Time',
+          'MaxDiff Responses',
+          'Conjoint Responses',
+          'Product Name',
+          'Disease Name'
+        ]);
+      }
+      
+      // Add the response
+      sheet.appendRow([
+        new Date().toISOString(),
+        data.respondent_id,
+        data.name,
+        data.role,
+        data.start_time,
+        data.completed_time,
+        JSON.stringify(data.maxdiff_responses),
+        JSON.stringify(data.conjoint_responses),
+        data.product_name,
+        data.disease_name
+      ]);
+      
+      Logger.log('Survey response saved: ' + data.respondent_id);
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'Response saved'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'Unknown request type'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('Error: ' + error.toString());
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// Test function (optional - for debugging)
+function testScript() {
+  const testData = {
+    type: 'survey_response',
+    respondent_id: 'TEST_001',
+    name: 'Test User',
+    role: 'Test Role',
+    start_time: new Date().toISOString(),
+    completed_time: new Date().toISOString(),
+    maxdiff_responses: [{task: 1, most: 'Msg1', least: 'Msg2'}],
+    conjoint_responses: [{comparison: 1, selected: 'card1'}],
+    product_name: 'Test Product',
+    disease_name: 'Test Disease'
+  };
+  
+  const result = doPost({
+    postData: {
+      contents: JSON.stringify(testData)
+    }
+  });
+  
+  Logger.log(result.getContent());
+}`;
+
+    const guide = `MESSAGE TESTING PLATFORM - GOOGLE SHEETS SETUP GUIDE
+=====================================================
+
+STEP 1: CREATE GOOGLE SHEET
+---------------------------
+1. Go to https://sheets.google.com
+2. Click "Blank" to create a new spreadsheet
+3. Name it "Survey Responses" (or your preferred name)
+
+STEP 2: OPEN APPS SCRIPT EDITOR
+-------------------------------
+1. In your spreadsheet, click "Extensions" menu
+2. Select "Apps Script"
+3. Delete any existing code in the editor
+
+STEP 3: PASTE THE SCRIPT
+------------------------
+Copy the script below and paste it into the Apps Script editor:
+
+${script}
+
+STEP 4: DEPLOY AS WEB APP
+-------------------------
+1. Click the "Deploy" button (top right)
+2. Select "New deployment"
+3. Click the gear icon next to "Select type"
+4. Choose "Web app"
+5. Fill in the settings:
+   - Description: "Survey Response Collector"
+   - Execute as: Me (your email)
+   - Who has access: Anyone
+6. Click "Deploy"
+7. Review permissions (click "Authorize access")
+8. Select your Google account
+9. Click "Advanced" if you see a warning
+10. Click "Go to [Your Project Name] (unsafe)"
+11. Click "Allow"
+
+STEP 5: COPY THE WEB APP URL
+----------------------------
+1. After deployment, you'll see a "Web app URL"
+2. It looks like: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
+3. Copy this URL
+
+STEP 6: CONFIGURE IN SURVEY PLATFORM
+------------------------------------
+1. Go back to the Admin Panel
+2. Scroll to "Google Sheets Integration" section
+3. Paste the URL in the input field
+4. Click "Save Integration"
+5. Click "Test Connection" to verify it works
+
+STEP 7: TEST THE INTEGRATION
+----------------------------
+1. Take a test survey
+2. Complete both MaxDiff and Conjoint sections
+3. Check your Google Sheet - you should see the response!
+
+TROUBLESHOOTING
+--------------
+- If deployment fails: Make sure you selected "Anyone" for access
+- If no data appears: Check Apps Script logs (View → Logs)
+- If connection test fails: Verify the URL is correct
+
+DATA FORMAT
+-----------
+Each row in your sheet will contain:
+- Timestamp: When response was received
+- Respondent ID: Unique identifier
+- Name & Role: From respondent info
+- Start/Completed Time: Survey duration
+- MaxDiff Responses: JSON with all choices
+- Conjoint Responses: JSON with all selections
+- Product/Disease Name: Survey configuration
+
+EXPORT OPTIONS
+-------------
+- Download as Excel: File → Download → Microsoft Excel
+- Download as CSV: File → Download → CSV
+- Share with team: Click "Share" button in Google Sheets
+
+NEED HELP?
+---------
+Check the Apps Script execution logs:
+1. Go to Apps Script editor
+2. Click "Executions" (clock icon on left)
+3. View any errors or logs
+
+========================================
+END OF SETUP GUIDE
+========================================`;
+
+    const blob = new Blob([guide], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'google-sheets-setup-guide.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    console.log('✅ Downloaded setup guide');
+}
+
+// ============================================================================
+// URL PARAMETER HANDLING (for unique respondent links)
+// ============================================================================
+
+function getRespondentIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id') || null;
+}
+
+// Auto-populate respondent ID if provided in URL
+document.addEventListener('DOMContentLoaded', function() {
+    const urlRespondentId = getRespondentIdFromUrl();
+    if (urlRespondentId) {
+        // Store in session
+        sessionStorage.setItem('respondentId', urlRespondentId);
+        console.log(`🔗 Respondent ID from URL: ${urlRespondentId}`);
+        
+        // Show message
+        const nameField = document.getElementById('respondentName');
+        if (nameField) {
+            nameField.placeholder = `Your ID: ${urlRespondentId}`;
+        }
+    }
+});
+
+// Modified completeSurvey to send to Google Sheets
+const originalCompleteSurvey = window.completeSurvey;
+window.completeSurvey = async function() {
+    // Call original function
+    if (originalCompleteSurvey) {
+        originalCompleteSurvey();
+    }
+    
+    // Prepare data for Google Sheets
+    const urlRespondentId = sessionStorage.getItem('respondentId');
+    const responseData = {
+        type: 'survey_response',
+        respondent_id: urlRespondentId || appState.currentRespondent.id,
+        name: appState.currentRespondent.name,
+        role: appState.currentRespondent.role,
+        start_time: appState.currentRespondent.startTime,
+        completed_time: appState.currentRespondent.completedTime,
+        maxdiff_responses: appState.currentRespondent.maxdiffResponses,
+        conjoint_responses: appState.currentRespondent.conjointResponses,
+        product_name: appState.surveyConfig.productName,
+        disease_name: appState.surveyConfig.diseaseName,
+        timestamp: new Date().toISOString()
+    };
+    
+    // Send to Google Sheets
+    await sendToGoogleSheets(responseData);
+};
+
+    </script>
+</body>
+</html>
