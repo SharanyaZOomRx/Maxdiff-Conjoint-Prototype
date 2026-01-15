@@ -601,12 +601,12 @@
 </head>
 <body>
     <div class="container">
-        <header>
+        <header id="mainHeader">
             <h1>Message Testing Survey Platform: Prototype</h1>
             <p class="subtitle">Professional two-stage preference measurement system</p>
         </header>
 
-        <div class="tabs">
+        <div class="tabs" id="mainTabs">
             <button class="tab active" data-tab="admin">Admin Panel</button>
             <button class="tab" data-tab="survey">Take Survey</button>
             <button class="tab" data-tab="results">Results Dashboard</button>
@@ -3513,11 +3513,27 @@ document.addEventListener('DOMContentLoaded', function() {
         sessionStorage.setItem('respondentId', urlRespondentId);
         console.log(`🔗 Respondent ID from URL: ${urlRespondentId}`);
         
-        // Show message
+        // RESPONDENT MODE: Hide everything except survey
+        const mainHeader = document.getElementById('mainHeader');
+        const mainTabs = document.getElementById('mainTabs');
+        
+        if (mainHeader) mainHeader.style.display = 'none';
+        if (mainTabs) mainTabs.style.display = 'none';
+        
+        // AUTO-SWITCH TO SURVEY TAB (hide admin/results panels)
+        setTimeout(() => {
+            document.getElementById('adminPanel').classList.add('hidden');
+            document.getElementById('resultsPanel').classList.add('hidden');
+            document.getElementById('surveyPanel').classList.remove('hidden');
+        }, 100);
+        
+        // Pre-fill respondent ID hint
         const nameField = document.getElementById('respondentName');
         if (nameField) {
             nameField.placeholder = `Your ID: ${urlRespondentId}`;
         }
+        
+        console.log('✅ Respondent mode activated - Survey-only view');
     }
 });
 
