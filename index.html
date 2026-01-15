@@ -779,7 +779,13 @@ Your responses are confidential and will be used solely for market research purp
 
             <div class="card" id="googleSheetsCard" style="display: none;">
                 <h2>📊 Google Sheets Integration</h2>
-                <p style="color: #6b7280; margin-bottom: 1.5rem;">Connect to Google Sheets to automatically save all survey responses.</p>
+                
+                <div class="alert alert-warning" style="margin-bottom: 1.5rem;">
+                    <strong>⚠️ IMPORTANT: Required for Cross-Browser Surveys</strong><br>
+                    To share survey links that work on any device/browser, you MUST set up Google Sheets integration BEFORE activating the survey. This stores your survey configuration centrally so respondents can access it from anywhere.
+                </div>
+                
+                <p style="color: #6b7280; margin-bottom: 1.5rem;">Connect to Google Sheets to automatically save survey configuration and all responses.</p>
                 
                 <div class="form-group">
                     <label for="googleSheetsUrl">Google Apps Script Web App URL</label>
@@ -1880,6 +1886,16 @@ function activateSurvey() {
     );
 
     saveToLocalStorage();
+    
+    // Save configuration to Google Sheets for cross-browser access
+    saveSurveyConfigToSheets().then(success => {
+        if (success) {
+            console.log('✅ Configuration saved to Google Sheets - survey will work across all browsers');
+        } else {
+            console.warn('⚠️ Configuration only saved locally - survey will only work in this browser');
+        }
+    });
+    
     updateUI();
 
     const statusBox = document.getElementById('surveyStatus');
@@ -1915,15 +1931,26 @@ function startSurvey() {
         return;
     }
     
-    if (!appState.surveyConfig.isActive) {
+    // Check if this is a valid respondent link
+    const respondentId = sessionStorage.getItem('respondentId');
+    const isRespondentLink = respondentId && respondentId.startsWith('R');
+    
+    // BYPASS activation check for respondent links (they're pre-authorized by having valid link)
+    if (!isRespondentLink && !appState.surveyConfig.isActive) {
         alert('Survey is not active. Please activate it from Admin Panel first.');
         return;
+    }
+    
+    // If respondent link but no data loaded, try to load from a minimal embedded config
+    if (isRespondentLink && !appState.surveyConfig.isActive) {
+        console.log('📋 Respondent link detected - loading survey configuration...');
+        loadSurveyConfigFromUrl();
     }
 
     console.log('✅ Creating respondent...');
 
     appState.currentRespondent = {
-        id: 'R' + Date.now(),
+        id: respondentId || 'R' + Date.now(),
         name: name,
         role: role,
         startTime: new Date().toISOString(),
@@ -3145,6 +3172,17 @@ function generateSurveyLinks() {
         return;
     }
     
+    // Save survey configuration to shared storage (so respondents can access it)
+    const sharedConfig = {
+        surveyConfig: appState.surveyConfig,
+        messages: appState.messages,
+        attributes: appState.attributes,
+        studyDesign: appState.studyDesign,
+        timestamp: Date.now()
+    };
+    localStorage.setItem('sharedSurveyConfig', JSON.stringify(sharedConfig));
+    console.log('✅ Saved shared survey configuration');
+    
     const links = [];
     const timestamp = Date.now();
     
@@ -3166,6 +3204,52 @@ function generateSurveyLinks() {
     document.getElementById('copyAllLinks').style.display = 'inline-block';
     
     console.log(`✅ Generated ${links.length} unique survey links`);
+}
+
+async function loadSurveyConfigFromUrl() {
+    console.log('🔍 Attempting to load survey configuration...');
+    
+    // First, try to get Google Sheets URL from localStorage (if user has accessed admin panel before)
+    try {
+        const saved = localStorage.getItem('maxdiffConjoint');
+        if (saved) {
+            const savedState = JSON.parse(saved);
+            if (savedState.googleSheetsConfig && savedState.googleSheetsConfig.webAppUrl) {
+                appState.googleSheetsConfig = savedState.googleSheetsConfig;
+                console.log('✅ Found Google Sheets URL from previous session');
+            }
+        }
+    } catch (e) {
+        console.log('No previous session data found');
+    }
+    
+    // Try to load from Google Sheets (works across all browsers)
+    const loadedFromSheets = await loadSurveyConfigFromSheets();
+    if (loadedFromSheets) {
+        console.log('✅ Successfully loaded configuration from Google Sheets');
+        return true;
+    }
+    
+    // Fallback: Try to load from shared configuration (only works in same browser)
+    const sharedConfigStr = localStorage.getItem('sharedSurveyConfig');
+    if (sharedConfigStr) {
+        try {
+            const sharedConfig = JSON.parse(sharedConfigStr);
+            appState.surveyConfig = sharedConfig.surveyConfig;
+            appState.messages = sharedConfig.messages;
+            appState.attributes = sharedConfig.attributes;
+            appState.studyDesign = sharedConfig.studyDesign;
+            console.log('✅ Loaded shared survey configuration from localStorage (same browser)');
+            return true;
+        } catch (e) {
+            console.error('Failed to load shared config:', e);
+        }
+    }
+    
+    // Config not found - show helpful message
+    alert('⚠️ Survey Configuration Missing\n\nThis survey requires Google Sheets integration to be set up.\n\nPlease ask your survey administrator to:\n1. Connect Google Sheets in the Admin Panel\n2. Activate the survey (this saves config to Google Sheets)\n3. Then share the survey links\n\n(Technical: Survey configuration could not be loaded from Google Sheets or localStorage)');
+    console.warn('⚠️ No configuration found in Google Sheets or localStorage');
+    return false;
 }
 
 function downloadLinksCSV() {
@@ -3295,13 +3379,88 @@ async function sendToGoogleSheets(responseData) {
     }
 }
 
+async function saveSurveyConfigToSheets() {
+    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
+        console.log('⚠️ Google Sheets not configured. Survey config will only work in this browser.');
+        return false;
+    }
+    
+    try {
+        console.log('📤 Saving survey configuration to Google Sheets...');
+        
+        const configData = {
+            type: 'save_config',
+            config: {
+                surveyConfig: appState.surveyConfig,
+                messages: appState.messages,
+                attributes: appState.attributes,
+                studyDesign: appState.studyDesign,
+                timestamp: Date.now()
+            }
+        };
+        
+        const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(configData)
+        });
+        
+        console.log('✅ Survey configuration saved to Google Sheets');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Failed to save config to Google Sheets:', error);
+        return false;
+    }
+}
+
+async function loadSurveyConfigFromSheets() {
+    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
+        console.log('Google Sheets not configured');
+        return false;
+    }
+    
+    try {
+        console.log('📥 Loading survey configuration from Google Sheets...');
+        
+        const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success' && result.config) {
+            appState.surveyConfig = result.config.surveyConfig;
+            appState.messages = result.config.messages;
+            appState.attributes = result.config.attributes;
+            appState.studyDesign = result.config.studyDesign;
+            
+            console.log('✅ Survey configuration loaded from Google Sheets');
+            return true;
+        } else {
+            console.warn('⚠️ No configuration found in Google Sheets');
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('❌ Failed to load config from Google Sheets:', error);
+        return false;
+    }
+}
+
 function downloadGoogleSheetsGuide() {
     const script = `// Google Apps Script for Message Testing Platform
 // Copy this entire code into your Google Apps Script editor
 
 function doPost(e) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     
     // Parse incoming data
     const data = JSON.parse(e.postData.contents);
@@ -3315,11 +3474,44 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
+    // Handle survey configuration save
+    if (data.type === 'save_config') {
+      let configSheet = spreadsheet.getSheetByName('Survey_Config');
+      
+      // Create config sheet if it doesn't exist
+      if (!configSheet) {
+        configSheet = spreadsheet.insertSheet('Survey_Config');
+        configSheet.appendRow(['Key', 'Value', 'Last Updated']);
+      }
+      
+      // Clear existing config (keep headers)
+      if (configSheet.getLastRow() > 1) {
+        configSheet.deleteRows(2, configSheet.getLastRow() - 1);
+      }
+      
+      // Store configuration as JSON string
+      configSheet.appendRow([
+        'survey_config',
+        JSON.stringify(data.config),
+        new Date().toISOString()
+      ]);
+      
+      Logger.log('Survey configuration saved');
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'Configuration saved successfully'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
     // Handle survey responses
     if (data.type === 'survey_response') {
-      // Check if headers exist, if not create them
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow([
+      let responseSheet = spreadsheet.getSheetByName('Responses');
+      
+      // Create responses sheet if it doesn't exist
+      if (!responseSheet) {
+        responseSheet = spreadsheet.insertSheet('Responses');
+        responseSheet.appendRow([
           'Timestamp',
           'Respondent ID',
           'Name',
@@ -3334,7 +3526,7 @@ function doPost(e) {
       }
       
       // Add the response
-      sheet.appendRow([
+      responseSheet.appendRow([
         new Date().toISOString(),
         data.respondent_id,
         data.name,
@@ -3358,6 +3550,36 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
       message: 'Unknown request type'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('Error: ' + error.toString());
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// Handle GET requests to retrieve survey configuration
+function doGet(e) {
+  try {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const configSheet = spreadsheet.getSheetByName('Survey_Config');
+    
+    if (!configSheet || configSheet.getLastRow() < 2) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'No configuration found'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Get the configuration from row 2 (row 1 is headers)
+    const configData = configSheet.getRange(2, 2).getValue();
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      config: JSON.parse(configData)
     })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {
@@ -3506,12 +3728,18 @@ function getRespondentIdFromUrl() {
 }
 
 // Auto-populate respondent ID if provided in URL
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     const urlRespondentId = getRespondentIdFromUrl();
     if (urlRespondentId) {
         // Store in session
         sessionStorage.setItem('respondentId', urlRespondentId);
         console.log(`🔗 Respondent ID from URL: ${urlRespondentId}`);
+        
+        // Try to load survey config from localStorage first (faster)
+        loadFromLocalStorage();
+        
+        // Then try to load from Google Sheets (works across browsers)
+        await loadSurveyConfigFromUrl();
         
         // RESPONDENT MODE: Hide everything except survey
         const mainHeader = document.getElementById('mainHeader');
