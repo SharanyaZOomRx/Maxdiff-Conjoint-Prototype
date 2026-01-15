@@ -1672,7 +1672,9 @@ function setupEventListeners() {
     safeAddListener('exportCSV', exportCSV);
     
     // Link Generator listeners (appear after activation)
-    safeAddListener('generateLinks', generateSurveyLinks);
+    safeAddListener('generateLinks', async function() {
+        await generateSurveyLinks();
+    });
     safeAddListener('downloadLinks', downloadLinksCSV);
     safeAddListener('copyAllLinks', copyAllLinks);
     
