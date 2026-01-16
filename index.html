@@ -1848,6 +1848,24 @@ function activateSurvey() {
 
     saveToLocalStorage();
     
+    // Save activated config to Supabase immediately
+    if (supabaseClient) {
+        const configData = {
+            surveyConfig: appState.surveyConfig,
+            messages: appState.messages,
+            attributes: appState.attributes,
+            studyDesign: appState.studyDesign,
+            timestamp: Date.now()
+        };
+        saveConfigToSupabase(configData).then(configId => {
+            if (configId) {
+                appState.currentConfigId = configId;
+                localStorage.setItem('currentConfigId', configId);
+                console.log('✅ Activated config saved to Supabase with ID:', configId);
+            }
+        });
+    }
+    
     updateUI();
 
     const statusBox = document.getElementById('surveyStatus');
