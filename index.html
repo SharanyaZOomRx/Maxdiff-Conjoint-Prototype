@@ -3280,6 +3280,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Then try to load from Google Sheets (works across browsers)
         await loadSurveyConfigFromUrl();
         
+        // Update UI to show the active survey
+        updateUI();
+        
         // RESPONDENT MODE: Hide everything except survey
         const mainHeader = document.getElementById('mainHeader');
         const mainTabs = document.getElementById('mainTabs');
