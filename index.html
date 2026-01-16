@@ -741,63 +741,12 @@ Your responses are confidential and will be used solely for market research purp
                 <div id="messagesPreview" class="hidden"></div>
             </div>
 
-            <!-- GOOGLE SHEETS INTEGRATION (MUST BE CONFIGURED BEFORE ACTIVATION) -->
-            <div class="card" id="googleSheetsCard">
-                <h2>📊 Google Sheets Integration</h2>
-                
-                <div class="alert alert-warning" style="margin-bottom: 1.5rem;">
-                    <strong>⚠️ STEP 1: Set This Up FIRST</strong><br>
-                    Before activating your survey, connect Google Sheets here. This is REQUIRED for survey links to work across different browsers and devices.
-                </div>
-                
-                <p style="color: #6b7280; margin-bottom: 1.5rem;">Connect to Google Sheets to automatically save survey configuration and all responses.</p>
-                
-                <div class="form-group">
-                    <label for="googleSheetsUrl">Google Apps Script Web App URL</label>
-                    <input type="text" id="googleSheetsUrl" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec" 
-                           style="font-family: monospace;">
-                    <div class="alert alert-info" style="margin-top: 0.5rem; font-size: 0.85rem;">
-                        Follow setup instructions below to get your URL
-                    </div>
-                </div>
-
-                <div class="button-group">
-                    <button class="btn btn-primary" id="saveGoogleSheets">Save Integration</button>
-                    <button class="btn btn-secondary" id="testConnection">Test Connection</button>
-                </div>
-
-                <div id="connectionStatus" style="margin-top: 1rem;"></div>
-
-                <details style="margin-top: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 8px;">
-                    <summary style="cursor: pointer; font-weight: 600; color: #2563eb;">📖 Setup Instructions</summary>
-                    <div style="margin-top: 1rem; line-height: 1.8; color: #374151;">
-                        <ol style="padding-left: 1.5rem;">
-                            <li>Open <a href="https://sheets.google.com" target="_blank" style="color: #2563eb;">Google Sheets</a> and create a new spreadsheet</li>
-                            <li>Name it "Survey Responses" (or your preferred name)</li>
-                            <li>Go to <strong>Extensions → Apps Script</strong></li>
-                            <li>Delete any existing code and paste the script from the setup guide</li>
-                            <li>Click <strong>Deploy → New Deployment</strong></li>
-                            <li>Select type: <strong>Web app</strong></li>
-                            <li>Execute as: <strong>Me</strong></li>
-                            <li>Who has access: <strong>Anyone</strong></li>
-                            <li>Click <strong>Deploy</strong> and copy the URL</li>
-                            <li>Paste the URL above and click "Save Integration"</li>
-                        </ol>
-                        <div style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; border-left: 4px solid #2563eb;">
-                            <strong>Need the script?</strong> Click "Download Setup Guide" below to get the complete Google Apps Script code.
-                        </div>
-                    </div>
-                </details>
-
-                <div class="button-group" style="margin-top: 1rem;">
-                    <button class="btn btn-secondary" id="downloadSetupGuide">Download Setup Guide</button>
-                </div>
-            </div>
+            <!-- Google Sheets section removed - using Supabase instead -->
 
             <div class="card">
                 <h2>Survey Status</h2>
                 <div id="surveyStatus" class="alert alert-info">
-                    Survey not yet activated. Set up Google Sheets first, then upload messages.
+                    Survey not yet activated. Upload messages first, then click Activate Survey.
                 </div>
 
                 <div class="button-group">
@@ -1642,7 +1591,9 @@ function setupEventListeners() {
     document.getElementById('resetSurvey').addEventListener('click', resetSurvey);
     
     // Survey flow listeners (exist after activation)
-    safeAddListener('startSurveyBtn', startSurvey);
+    safeAddListener('startSurveyBtn', async function() {
+        await startSurvey();
+    });
     safeAddListener('continueToConjoint', showConjointSection);
     safeAddListener('prevTask', previousTask);
     safeAddListener('nextTask', nextTask);
@@ -1661,10 +1612,7 @@ function setupEventListeners() {
     safeAddListener('downloadLinks', downloadLinksCSV);
     safeAddListener('copyAllLinks', copyAllLinks);
     
-    // Google Sheets listeners (appear after activation)
-    safeAddListener('saveGoogleSheets', saveGoogleSheetsConfig);
-    safeAddListener('testConnection', testGoogleSheetsConnection);
-    safeAddListener('downloadSetupGuide', downloadGoogleSheetsGuide);
+    // Google Sheets listeners removed - using Supabase
     
     // New listeners for optimization
     document.getElementById('sampleSize').addEventListener('input', updateDesignCalculation);
@@ -1900,15 +1848,6 @@ function activateSurvey() {
 
     saveToLocalStorage();
     
-    // Save configuration to Google Sheets for cross-browser access
-    saveSurveyConfigToSheets().then(success => {
-        if (success) {
-            console.log('✅ Configuration saved to Google Sheets - survey will work across all browsers');
-        } else {
-            console.warn('⚠️ Configuration only saved locally - survey will only work in this browser');
-        }
-    });
-    
     updateUI();
 
     const statusBox = document.getElementById('surveyStatus');
@@ -1930,7 +1869,7 @@ function resetSurvey() {
     }
 }
 
-function startSurvey() {
+async function startSurvey() {
     console.log('🚀 Start Survey clicked!');
     
     const name = document.getElementById('respondentName').value.trim();
@@ -1957,7 +1896,7 @@ function startSurvey() {
     // If respondent link but no data loaded, try to load from a minimal embedded config
     if (isRespondentLink && !appState.surveyConfig.isActive) {
         console.log('📋 Respondent link detected - loading survey configuration...');
-        loadSurveyConfigFromUrl();
+        await loadSurveyConfigFromUrl();
     }
 
     console.log('✅ Creating respondent...');
@@ -3045,13 +2984,7 @@ function updateUI() {
         document.getElementById('surveyActive').classList.add('hidden');
         
         // Hide link generator when survey is not active
-        // Google Sheets integration stays VISIBLE (needed before activation)
         document.getElementById('linkGeneratorCard').style.display = 'none';
-    }
-    
-    // Update Google Sheets URL if saved
-    if (appState.googleSheetsConfig.webAppUrl) {
-        document.getElementById('googleSheetsUrl').value = appState.googleSheetsConfig.webAppUrl;
     }
 }
 
@@ -3262,82 +3195,7 @@ async function loadSurveyConfigFromUrl() {
     alert('⚠️ Survey configuration not found.\n\nPlease ask the survey administrator for a valid link.');
     return false;
 }
-    const sheetsUrlFromLink = urlParams.get('sheets');
-    
-    console.log('📋 URL Parameters:');
-    console.log('   - Respondent ID:', urlParams.get('id'));
-    console.log('   - Sheets URL param found:', !!sheetsUrlFromLink);
-    
-    if (sheetsUrlFromLink) {
-        const decodedUrl = decodeURIComponent(sheetsUrlFromLink);
-        appState.googleSheetsConfig.webAppUrl = decodedUrl;
-        appState.googleSheetsConfig.enabled = true;
-        console.log('✅ Found Google Sheets URL from survey link');
-        console.log('   - URL:', decodedUrl);
-    } else {
-        console.log('⚠️ No Google Sheets URL in link parameters');
-    }
-    
-    // Fallback: Try to get Google Sheets URL from localStorage (if user has accessed admin panel before)
-    if (!appState.googleSheetsConfig.webAppUrl) {
-        console.log('🔍 Checking localStorage for Google Sheets URL...');
-        try {
-            const saved = localStorage.getItem('maxdiffConjoint');
-            if (saved) {
-                const savedState = JSON.parse(saved);
-                if (savedState.googleSheetsConfig && savedState.googleSheetsConfig.webAppUrl) {
-                    appState.googleSheetsConfig = savedState.googleSheetsConfig;
-                    console.log('✅ Found Google Sheets URL from previous session');
-                    console.log('   - URL:', savedState.googleSheetsConfig.webAppUrl);
-                } else {
-                    console.log('   - No Google Sheets config in localStorage');
-                }
-            } else {
-                console.log('   - No previous session data found');
-            }
-        } catch (e) {
-            console.log('   - Error reading localStorage:', e.message);
-        }
-    }
-    
-    // Try to load from Google Sheets (works across all browsers)
-    console.log('\n📥 Attempting to load from Google Sheets...');
-    const loadedFromSheets = await loadSurveyConfigFromSheets();
-    if (loadedFromSheets) {
-        console.log('✅ Successfully loaded configuration from Google Sheets');
-        return true;
-    }
-    
-    // Fallback: Try to load from shared configuration (only works in same browser)
-    console.log('\n🔍 Trying localStorage fallback...');
-    const sharedConfigStr = localStorage.getItem('sharedSurveyConfig');
-    if (sharedConfigStr) {
-        try {
-            const sharedConfig = JSON.parse(sharedConfigStr);
-            appState.surveyConfig = sharedConfig.surveyConfig;
-            appState.messages = sharedConfig.messages;
-            appState.attributes = sharedConfig.attributes;
-            appState.studyDesign = sharedConfig.studyDesign;
-            console.log('✅ Loaded shared survey configuration from localStorage (same browser)');
-            return true;
-        } catch (e) {
-            console.error('❌ Failed to load shared config:', e);
-        }
-    } else {
-        console.log('   - No shared config in localStorage');
-    }
-    
-    // Config not found - show helpful message
-    console.error('\n❌ CONFIGURATION LOADING FAILED');
-    console.error('Summary:');
-    console.error('   - Google Sheets URL in link:', !!sheetsUrlFromLink);
-    console.error('   - Google Sheets URL in localStorage:', !!(localStorage.getItem('maxdiffConjoint')));
-    console.error('   - Shared config in localStorage:', !!sharedConfigStr);
-    
-    alert('⚠️ Survey Configuration Missing\n\nThis survey requires Google Sheets integration to be set up.\n\nPlease ask your survey administrator to:\n1. Connect Google Sheets in the Admin Panel\n2. Activate the survey (this saves config to Google Sheets)\n3. Generate links (this embeds the Google Sheets URL)\n4. Then share the survey links\n\n(Technical: Survey configuration could not be loaded from Google Sheets or localStorage)');
-    console.warn('⚠️ No configuration found in Google Sheets or localStorage');
-    return false;
-}
+
 
 function downloadLinksCSV() {
     if (!appState.generatedLinks || appState.generatedLinks.length === 0) {
@@ -3376,450 +3234,6 @@ function copyAllLinks() {
     }, 2000);
 }
 
-// ============================================================================
-// GOOGLE SHEETS INTEGRATION FUNCTIONS
-// ============================================================================
-
-function saveGoogleSheetsConfig() {
-    const url = document.getElementById('googleSheetsUrl').value.trim();
-    
-    if (!url) {
-        alert('Please enter your Google Apps Script URL');
-        return;
-    }
-    
-    if (!url.includes('script.google.com')) {
-        alert('Please enter a valid Google Apps Script URL');
-        return;
-    }
-    
-    appState.googleSheetsConfig.webAppUrl = url;
-    appState.googleSheetsConfig.enabled = true;
-    
-    saveToLocalStorage();
-    
-    document.getElementById('connectionStatus').innerHTML = 
-        '<div class="alert alert-success">✓ Configuration saved! Responses will now sync to Google Sheets.</div>';
-    
-    console.log('✅ Google Sheets integration configured');
-}
-
-async function testGoogleSheetsConnection() {
-    const url = document.getElementById('googleSheetsUrl').value.trim();
-    
-    if (!url) {
-        alert('Please enter your Google Apps Script URL first');
-        return;
-    }
-    
-    const statusDiv = document.getElementById('connectionStatus');
-    statusDiv.innerHTML = '<div class="alert alert-info">Testing connection...</div>';
-    
-    try {
-        const testData = {
-            type: 'test',
-            timestamp: new Date().toISOString(),
-            message: 'Connection test from Message Testing Platform'
-        };
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(testData)
-        });
-        
-        // no-cors mode doesn't give us response, so we assume success
-        statusDiv.innerHTML = '<div class="alert alert-success">✓ Connection successful! (Note: no-cors mode prevents detailed response)</div>';
-        console.log('✅ Test request sent to Google Sheets');
-        
-    } catch (error) {
-        statusDiv.innerHTML = `<div class="alert alert-warning">⚠️ Request sent but cannot verify: ${error.message}</div>`;
-        console.error('Connection test error:', error);
-    }
-}
-
-async function sendToGoogleSheets(responseData) {
-    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
-        console.log('Google Sheets not configured, skipping sync');
-        return;
-    }
-    
-    try {
-        console.log('📤 Sending data to Google Sheets...');
-        
-        const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(responseData)
-        });
-        
-        console.log('✅ Data sent to Google Sheets');
-        
-    } catch (error) {
-        console.error('❌ Failed to send to Google Sheets:', error);
-    }
-}
-
-async function saveSurveyConfigToSheets() {
-    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
-        console.log('⚠️ Google Sheets not configured. Survey config will only work in this browser.');
-        return false;
-    }
-    
-    try {
-        console.log('📤 Saving survey configuration to Google Sheets...');
-        
-        const configData = {
-            type: 'save_config',
-            config: {
-                surveyConfig: appState.surveyConfig,
-                messages: appState.messages,
-                attributes: appState.attributes,
-                studyDesign: appState.studyDesign,
-                timestamp: Date.now()
-            }
-        };
-        
-        const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(configData)
-        });
-        
-        console.log('✅ Survey configuration saved to Google Sheets');
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Failed to save config to Google Sheets:', error);
-        return false;
-    }
-}
-
-async function loadSurveyConfigFromSheets() {
-    if (!appState.googleSheetsConfig.enabled || !appState.googleSheetsConfig.webAppUrl) {
-        console.log('❌ Google Sheets not configured');
-        console.log('   - Enabled:', appState.googleSheetsConfig.enabled);
-        console.log('   - URL:', appState.googleSheetsConfig.webAppUrl);
-        return false;
-    }
-    
-    try {
-        console.log('📥 Loading survey configuration from Google Sheets...');
-        console.log('   - URL:', appState.googleSheetsConfig.webAppUrl);
-        
-        const response = await fetch(appState.googleSheetsConfig.webAppUrl, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        console.log('   - Response status:', response.status);
-        console.log('   - Response ok:', response.ok);
-        
-        const result = await response.json();
-        console.log('   - Result status:', result.status);
-        
-        if (result.status === 'success' && result.config) {
-            console.log('   - Has config:', !!result.config);
-            console.log('   - Has surveyConfig:', !!result.config.surveyConfig);
-            console.log('   - Has messages:', !!result.config.messages);
-            console.log('   - Messages count:', result.config.messages?.length);
-            
-            appState.surveyConfig = result.config.surveyConfig;
-            appState.messages = result.config.messages;
-            appState.attributes = result.config.attributes;
-            appState.studyDesign = result.config.studyDesign;
-            
-            console.log('✅ Survey configuration loaded from Google Sheets');
-            console.log('   - Survey is active:', appState.surveyConfig.isActive);
-            return true;
-        } else {
-            console.warn('⚠️ No configuration found in Google Sheets');
-            console.warn('   - Result:', result);
-            return false;
-        }
-        
-    } catch (error) {
-        console.error('❌ Failed to load config from Google Sheets:', error);
-        console.error('   - Error name:', error.name);
-        console.error('   - Error message:', error.message);
-        return false;
-    }
-}
-
-function downloadGoogleSheetsGuide() {
-    const script = `// Google Apps Script for Message Testing Platform
-// Copy this entire code into your Google Apps Script editor
-
-function doPost(e) {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // Parse incoming data
-    const data = JSON.parse(e.postData.contents);
-    
-    // Handle test requests
-    if (data.type === 'test') {
-      Logger.log('Test connection received');
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'success',
-        message: 'Connection successful'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // Handle survey configuration save
-    if (data.type === 'save_config') {
-      let configSheet = spreadsheet.getSheetByName('Survey_Config');
-      
-      // Create config sheet if it doesn't exist
-      if (!configSheet) {
-        configSheet = spreadsheet.insertSheet('Survey_Config');
-        configSheet.appendRow(['Key', 'Value', 'Last Updated']);
-      }
-      
-      // Clear existing config (keep headers)
-      if (configSheet.getLastRow() > 1) {
-        configSheet.deleteRows(2, configSheet.getLastRow() - 1);
-      }
-      
-      // Store configuration as JSON string
-      configSheet.appendRow([
-        'survey_config',
-        JSON.stringify(data.config),
-        new Date().toISOString()
-      ]);
-      
-      Logger.log('Survey configuration saved');
-      
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'success',
-        message: 'Configuration saved successfully'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // Handle survey responses
-    if (data.type === 'survey_response') {
-      let responseSheet = spreadsheet.getSheetByName('Responses');
-      
-      // Create responses sheet if it doesn't exist
-      if (!responseSheet) {
-        responseSheet = spreadsheet.insertSheet('Responses');
-        responseSheet.appendRow([
-          'Timestamp',
-          'Respondent ID',
-          'Name',
-          'Role',
-          'Start Time',
-          'Completed Time',
-          'MaxDiff Responses',
-          'Conjoint Responses',
-          'Product Name',
-          'Disease Name'
-        ]);
-      }
-      
-      // Add the response
-      responseSheet.appendRow([
-        new Date().toISOString(),
-        data.respondent_id,
-        data.name,
-        data.role,
-        data.start_time,
-        data.completed_time,
-        JSON.stringify(data.maxdiff_responses),
-        JSON.stringify(data.conjoint_responses),
-        data.product_name,
-        data.disease_name
-      ]);
-      
-      Logger.log('Survey response saved: ' + data.respondent_id);
-      
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'success',
-        message: 'Response saved'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: 'Unknown request type'
-    })).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (error) {
-    Logger.log('Error: ' + error.toString());
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-// Handle GET requests to retrieve survey configuration
-function doGet(e) {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const configSheet = spreadsheet.getSheetByName('Survey_Config');
-    
-    if (!configSheet || configSheet.getLastRow() < 2) {
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'error',
-        message: 'No configuration found'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // Get the configuration from row 2 (row 1 is headers)
-    const configData = configSheet.getRange(2, 2).getValue();
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'success',
-      config: JSON.parse(configData)
-    })).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (error) {
-    Logger.log('Error: ' + error.toString());
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-// Test function (optional - for debugging)
-function testScript() {
-  const testData = {
-    type: 'survey_response',
-    respondent_id: 'TEST_001',
-    name: 'Test User',
-    role: 'Test Role',
-    start_time: new Date().toISOString(),
-    completed_time: new Date().toISOString(),
-    maxdiff_responses: [{task: 1, most: 'Msg1', least: 'Msg2'}],
-    conjoint_responses: [{comparison: 1, selected: 'card1'}],
-    product_name: 'Test Product',
-    disease_name: 'Test Disease'
-  };
-  
-  const result = doPost({
-    postData: {
-      contents: JSON.stringify(testData)
-    }
-  });
-  
-  Logger.log(result.getContent());
-}`;
-
-    const guide = `MESSAGE TESTING PLATFORM - GOOGLE SHEETS SETUP GUIDE
-=====================================================
-
-STEP 1: CREATE GOOGLE SHEET
----------------------------
-1. Go to https://sheets.google.com
-2. Click "Blank" to create a new spreadsheet
-3. Name it "Survey Responses" (or your preferred name)
-
-STEP 2: OPEN APPS SCRIPT EDITOR
--------------------------------
-1. In your spreadsheet, click "Extensions" menu
-2. Select "Apps Script"
-3. Delete any existing code in the editor
-
-STEP 3: PASTE THE SCRIPT
-------------------------
-Copy the script below and paste it into the Apps Script editor:
-
-${script}
-
-STEP 4: DEPLOY AS WEB APP
--------------------------
-1. Click the "Deploy" button (top right)
-2. Select "New deployment"
-3. Click the gear icon next to "Select type"
-4. Choose "Web app"
-5. Fill in the settings:
-   - Description: "Survey Response Collector"
-   - Execute as: Me (your email)
-   - Who has access: Anyone
-6. Click "Deploy"
-7. Review permissions (click "Authorize access")
-8. Select your Google account
-9. Click "Advanced" if you see a warning
-10. Click "Go to [Your Project Name] (unsafe)"
-11. Click "Allow"
-
-STEP 5: COPY THE WEB APP URL
-----------------------------
-1. After deployment, you'll see a "Web app URL"
-2. It looks like: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
-3. Copy this URL
-
-STEP 6: CONFIGURE IN SURVEY PLATFORM
-------------------------------------
-1. Go back to the Admin Panel
-2. Scroll to "Google Sheets Integration" section
-3. Paste the URL in the input field
-4. Click "Save Integration"
-5. Click "Test Connection" to verify it works
-
-STEP 7: TEST THE INTEGRATION
-----------------------------
-1. Take a test survey
-2. Complete both MaxDiff and Conjoint sections
-3. Check your Google Sheet - you should see the response!
-
-TROUBLESHOOTING
---------------
-- If deployment fails: Make sure you selected "Anyone" for access
-- If no data appears: Check Apps Script logs (View → Logs)
-- If connection test fails: Verify the URL is correct
-
-DATA FORMAT
------------
-Each row in your sheet will contain:
-- Timestamp: When response was received
-- Respondent ID: Unique identifier
-- Name & Role: From respondent info
-- Start/Completed Time: Survey duration
-- MaxDiff Responses: JSON with all choices
-- Conjoint Responses: JSON with all selections
-- Product/Disease Name: Survey configuration
-
-EXPORT OPTIONS
--------------
-- Download as Excel: File → Download → Microsoft Excel
-- Download as CSV: File → Download → CSV
-- Share with team: Click "Share" button in Google Sheets
-
-NEED HELP?
----------
-Check the Apps Script execution logs:
-1. Go to Apps Script editor
-2. Click "Executions" (clock icon on left)
-3. View any errors or logs
-
-========================================
-END OF SETUP GUIDE
-========================================`;
-
-    const blob = new Blob([guide], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'google-sheets-setup-guide.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    console.log('✅ Downloaded setup guide');
-}
 
 // ============================================================================
 // URL PARAMETER HANDLING (for unique respondent links)
