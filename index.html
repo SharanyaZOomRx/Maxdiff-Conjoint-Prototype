@@ -3191,6 +3191,10 @@ async function loadSurveyConfigFromUrl() {
             appState.attributes = config.attributes;
             appState.studyDesign = config.studyDesign;
             appState.currentConfigId = configId;
+            
+            // Force active for respondent links (they have valid config ID)
+            appState.surveyConfig.isActive = true;
+            
             console.log('✅ Loaded from Supabase');
             return true;
         }
